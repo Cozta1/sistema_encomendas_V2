@@ -1,0 +1,87 @@
+{% extends 'encomendas/base.html' %}
+
+{% block title %}Meu Perfil - Sistema de Encomendas{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+<h1><i class="bi bi-person-circle me-3"></i>{{ title }}</h1>
+<p class="mb-0">Gerencie suas informações pessoais e de segurança</p>
+</div>
+
+<div class="row">
+<div class="col-lg-8">
+<!-- Detalhes do Perfil -->
+<div class="card mb-4">
+<div class="card-header">
+<h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Suas Informações</h5>
+</div>
+<div class="card-body">
+<div class="row mb-3">
+<div class="col-sm-4">
+<p class="mb-0 text-muted">Nome Completo</p>
+</div>
+<div class="col-sm-8">
+<p class="mb-0"><strong>{{ user.nome_completo }}</strong></p>
+</div>
+</div>
+<hr>
+<div class="row mb-3">
+<div class="col-sm-4">
+<p class="mb-0 text-muted">Email</p>
+</div>
+<div class="col-sm-8">
+<p class="mb-0">{{ user.email }}</p>
+</div>
+</div>
+<hr>
+<div class="row mb-3">
+<div class="col-sm-4">
+<p class="mb-0 text-muted">Cargo</p>
+</div>
+<div class="col-sm-8">
+<p class="mb-0">{{ user.cargo }}</p>
+</div>
+</div>
+<hr>
+<div class="row mb-3">
+<div class="col-sm-4">
+<p class="mb-0 text-muted">Telefone</p>
+</div>
+<div class="col-sm-8">
+<p class="mb-0">{{ user.telefone|default:"Não informado" }}</p>
+</div>
+</div>
+<hr>
+<div class="row">
+<div class="col-sm-4">
+<p class="mb-0 text-muted">Identificação (CPF/CNPJ)</p>
+</div>
+<div class="col-sm-8">
+<p class="mb-0">{{ user.identificacao }}</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="col-lg-4">
+<!-- Ações -->
+<div class="card">
+<div class="card-header">
+<h5 class="mb-0"><i class="bi bi-gear me-2"></i>Ações</h5>
+</div>
+<div class="list-group list-group-flush">
+<a href="{% url 'alterar_senha' %}" class="list-group-item list-group-item-action">
+<i class="bi bi-key me-2"></i>Alterar Senha
+</a>
+<a href="{% url 'listar_equipes' %}" class="list-group-item list-group-item-action">
+<i class="bi bi-people me-2"></i>Minhas Equipes
+</a>
+<a href="{% url 'dashboard' %}" class="list-group-item list-group-item-action">
+<i class="bi bi-arrow-left me-2"></i>Voltar ao Dashboard
+</a>
+</div>
+</div>
+</div>
+</div>
+{% endblock %}

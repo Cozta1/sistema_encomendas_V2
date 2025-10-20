@@ -1,0 +1,229 @@
+{% extends 'encomendas/base.html' %}
+
+{% block title %}Login - Sistema de Encomendas{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* body styles removed as they are in base.html now */
+
+    .auth-container {
+        width: 100%;
+        max-width: 450px;
+        padding: 20px;
+    }
+
+    .auth-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        padding: 40px;
+    }
+
+    .auth-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .auth-header h1 {
+        font-size: 28px;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .auth-header p {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    /* Use the standard form-control class from base.html for consistency */
+    /* .form-group input { ... } */
+
+    .password-toggle {
+        position: relative;
+    }
+
+    .password-toggle .toggle-btn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #667eea;
+        font-size: 18px;
+    }
+
+    .password-toggle input.form-control { /* Target specifically */
+        padding-right: 40px;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .form-check input {
+        width: auto;
+        margin-right: 8px;
+        cursor: pointer;
+    }
+
+    .form-check label {
+        margin: 0;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .btn-login {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .auth-links {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+        font-size: 14px;
+    }
+
+    .auth-links a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .auth-links a:hover {
+        text-decoration: underline;
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+
+    .auth-footer p {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .auth-footer a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+
+    /* Use standard alert styles or define if needed */
+    /* .error-message { ... } */
+</style>
+{% endblock %}
+
+{% block auth_content %} {# Changed from block content #}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Bem-vindo</h1>
+            <p>Sistema de Encomendas - Drogaria Benfica</p>
+        </div>
+
+        {# Messages are now handled in base.html within the auth-wrapper #}
+        {# {% if messages %} ... {% endif %} #}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                {{ form.email }} {# Assuming form renders with 'form-control' #}
+                {% if form.email.errors %}
+                <small class="text-danger">{{ form.email.errors.0 }}</small>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                <div class="password-toggle">
+                    {{ form.password }} {# Assuming form renders with 'form-control' #}
+                    <button type="button" class="toggle-btn" onclick="togglePassword('{{ form.password.id_for_label }}')">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+                {% if form.password.errors %}
+                <small class="text-danger">{{ form.password.errors.0 }}</small>
+                {% endif %}
+            </div>
+
+            <div class="form-check">
+                {{ form.lembrar_me }}
+                <label for="{{ form.lembrar_me.id_for_label }}" class="form-check-label">
+                    {{ form.lembrar_me.label }}
+                </label>
+            </div>
+
+            <button type="submit" class="btn-login">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Entrar
+            </button>
+
+            <div class="auth-links">
+                <a href="{% url 'solicitar_reset_senha' %}">Esqueceu sua senha?</a>
+            </div>
+        </form>
+
+        <div class="auth-footer">
+            <p>Não tem conta? <a href="{% url 'registro' %}">Crie uma agora</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    // Find button within the same password-toggle container
+    const button = input.closest('.password-toggle').querySelector('.toggle-btn');
+
+    if (!input || !button) return; // Safety check
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        button.innerHTML = '<i class="bi bi-eye-slash"></i>';
+    } else {
+        input.type = 'password';
+        button.innerHTML = '<i class="bi bi-eye"></i>';
+    }
+}
+</script>
+{% endblock %}

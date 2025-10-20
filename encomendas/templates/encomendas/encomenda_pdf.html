@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encomenda #{{ encomenda.numero_encomenda }} - Drogaria Benfica</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            line-height: 1.3;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .header {
+            border: 2px solid #000;
+            padding: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-section {
+            flex: 1;
+        }
+        
+        .logo {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        
+        .subtitle {
+            font-size: 10px;
+            margin-bottom: 1px;
+        }
+        
+        .contact-info {
+            font-size: 9px;
+        }
+        
+        .number-section {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+            min-width: 80px;
+        }
+        
+        .number-large {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .form-row {
+            display: flex;
+            margin-bottom: 6px;
+            align-items: center;
+        }
+        
+        .field {
+            border-bottom: 1px solid #000;
+            padding: 2px 5px;
+            margin-right: 15px;
+            min-height: 16px;
+            flex: 1;
+        }
+        
+        .field-label {
+            font-weight: bold;
+            margin-right: 5px;
+            white-space: nowrap;
+        }
+        
+        .field-small {
+            max-width: 120px;
+        }
+        
+        .field-medium {
+            max-width: 200px;
+        }
+        
+        .products-section {
+            margin: 10px 0;
+        }
+        
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        
+        .products-table th,
+        .products-table td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: left;
+            font-size: 10px;
+        }
+        
+        .products-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+        
+        .delivery-section {
+            border: 2px solid #000;
+            padding: 8px;
+            margin-top: 10px;
+        }
+        
+        .delivery-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .signature-area {
+            border: 1px solid #000;
+            height: 40px;
+            margin-top: 10px;
+            padding: 5px;
+        }
+        
+        .footer-info {
+            font-size: 8px;
+            text-align: right;
+            margin-top: 10px;
+        }
+        
+        .value-box {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+            min-width: 80px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Cabeçalho -->
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo">+B DROGARIA Benfica</div>
+            <div class="subtitle">BLOCO DE ENCOMENDAS</div>
+            <div class="subtitle">GRUPO BENFICA</div>
+            <div class="contact-info">
+                Entrega em toda Juiz de Fora<br>
+                📞 32 99904-3178 📞 32 3112-3999 | 3272-8532
+            </div>
+        </div>
+        <div class="number-section">
+            <div class="number-large">{{ encomenda.numero_encomenda }}</div>
+            <div style="font-size: 10px;">Data:</div>
+            <div>{{ encomenda.data_encomenda|date:"d/m/Y" }}</div>
+            <div style="font-size: 10px; margin-top: 5px;">Responsável</div>
+            <div style="font-size: 9px;">{{ encomenda.responsavel_criacao|default:"" }}</div>
+        </div>
+    </div>
+
+    <!-- Produtos -->
+    <div class="form-row">
+        <span class="field-label">Produto:</span>
+        <div class="field" style="flex: 2;">
+            {% for item in encomenda.itens.all %}
+                {{ item.produto.nome }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </div>
+        <span class="field-label">Código:</span>
+        <div class="field field-small">
+            {% for item in encomenda.itens.all %}
+                {{ item.produto.codigo }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </div>
+        <span class="field-label">Preço:</span>
+        <div class="field field-small">
+            {% for item in encomenda.itens.all %}
+                R$ {{ item.preco_unitario }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="form-row">
+        <span class="field-label">Fornecedor Cotado:</span>
+        <div class="field" style="flex: 2;">
+            {% for item in encomenda.itens.all %}
+                {{ item.fornecedor.nome|default:"" }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </div>
+        <span class="field-label">Código:</span>
+        <div class="field field-small">
+            {% for item in encomenda.itens.all %}
+                {{ item.fornecedor.codigo|default:"" }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </div>
+        <span class="field-label">Preço:</span>
+        <div class="field field-small">
+            {% for item in encomenda.itens.all %}
+                R$ {{ item.preco_unitario }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Dados do Cliente -->
+    <div class="form-row">
+        <span class="field-label">Nome do Cliente:</span>
+        <div class="field" style="flex: 3;">{{ encomenda.cliente.nome }}</div>
+    </div>
+
+    <div class="form-row">
+        <span class="field-label">Código:</span>
+        <div class="field" style="flex: 3;">{{ encomenda.cliente.codigo }}</div>
+    </div>
+
+    <div class="form-row">
+        <span class="field-label">End.</span>
+        <div class="field" style="flex: 3;">{{ encomenda.cliente.endereco }}</div>
+    </div>
+
+    <div class="form-row">
+        <span class="field-label">Bairro:</span>
+        <div class="field" style="flex: 2;">{{ encomenda.cliente.bairro }}</div>
+        <span class="field-label">Referência:</span>
+        <div class="field" style="flex: 2;">{{ encomenda.cliente.referencia|default:"" }}</div>
+    </div>
+
+    <div class="form-row">
+        <span class="field-label">Valor Pago Adiantamento:</span>
+        <div class="field" style="flex: 3;">
+            {% if entrega %}R$ {{ entrega.valor_pago_adiantamento|default:"0,00" }}{% endif %}
+        </div>
+    </div>
+
+    <div class="form-row">
+        <span class="field-label">Data Entrega:</span>
+        <div class="field field-medium">
+            {% if entrega %}{{ entrega.data_entrega|date:"d/m/Y"|default:"___/___/___" }}{% else %}___/___/___{% endif %}
+        </div>
+    </div>
+
+    <div class="form-row">
+        <span class="field-label">Observação:</span>
+        <div class="field" style="flex: 3;">{{ encomenda.observacao|default:"" }}</div>
+    </div>
+
+    <div class="form-row">
+        <span class="field-label">Responsável Entrega:</span>
+        <div class="field" style="flex: 3;">
+            {% if entrega %}{{ entrega.responsavel_entrega|default:"" }}{% endif %}
+        </div>
+    </div>
+
+    <div class="form-row">
+        <span class="field-label">Data:</span>
+        <div class="field field-medium">
+            {% if entrega and entrega.data_realizada %}{{ entrega.data_realizada|date:"d/m/Y" }}{% else %}___/___/___{% endif %}
+        </div>
+        <span class="field-label">Hora:</span>
+        <div class="field field-small">
+            {% if entrega and entrega.data_realizada %}{{ entrega.data_realizada|time:"H:i" }}{% else %}___:___{% endif %}
+        </div>
+    </div>
+
+    <div class="form-row">
+        <span class="field-label">Ass. do Cliente:</span>
+        <div class="field" style="flex: 3;">
+            {% if entrega %}{{ entrega.assinatura_cliente|default:"" }}{% endif %}
+        </div>
+    </div>
+
+    <!-- Seção Inferior com Borda -->
+    <div class="delivery-section">
+        <div class="form-row">
+            <span class="field-label">Responsável pela Encomenda:</span>
+            <div class="field" style="flex: 2;">{{ encomenda.responsavel_criacao|default:"" }}</div>
+            <div class="number-section" style="margin-left: 20px;">
+                <div class="number-large">{{ encomenda.numero_encomenda }}</div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <span class="field-label">Valor do Adiantamento:</span>
+            <div class="field field-medium">
+                {% if entrega %}R$ {{ entrega.valor_pago_adiantamento|default:"0,00" }}{% endif %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <span class="field-label">Data:</span>
+            <div class="field field-medium">
+                {% if entrega and entrega.data_realizada %}{{ entrega.data_realizada|date:"d/m/Y" }}{% else %}___/___/___{% endif %}
+            </div>
+            <span class="field-label">Hora:</span>
+            <div class="field field-small">
+                {% if entrega and entrega.data_realizada %}{{ entrega.data_realizada|time:"H:i" }}{% else %}___:___{% endif %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <span class="field-label">Valor do Produto:</span>
+            <div class="field field-medium">R$ {{ encomenda.valor_total|default:"0,00" }}</div>
+        </div>
+
+        <div class="form-row">
+            <span class="field-label">Entregue por:</span>
+            <div class="field" style="flex: 3;">
+                {% if entrega %}{{ entrega.responsavel_entrega|default:"" }}{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <div class="footer-info">
+        1001 Artes Gráficas (32) 3261-1001
+    </div>
+</body>
+</html>

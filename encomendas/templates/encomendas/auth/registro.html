@@ -1,0 +1,261 @@
+{% extends 'encomendas/base.html' %}
+
+{% block title %}Criar Conta - Sistema de Encomendas{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* body style removed, now handled by .auth-wrapper in base.html */
+    
+    .auth-container {
+        width: 100%;
+        max-width: 500px;
+        padding: 20px;
+    }
+    
+    .auth-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        padding: 40px;
+    }
+    
+    .auth-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .auth-header h1 {
+        font-size: 28px;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    
+    .auth-header p {
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-group small {
+        display: block;
+        margin-top: 6px;
+        color: #999;
+        font-size: 12px;
+    }
+    
+    .password-toggle {
+        position: relative;
+    }
+    
+    .password-toggle .toggle-btn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #667eea;
+        font-size: 18px;
+    }
+    
+    .password-toggle input {
+        padding-right: 40px;
+    }
+    
+    .btn-register {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-register:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .auth-footer {
+        text-align: center;
+        margin-top: 20px;
+    }
+    
+    .auth-footer a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+    
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        border-left: 4px solid #f5c6cb;
+    }
+    
+    .error-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .error-list li {
+        padding: 4px 0;
+    }
+</style>
+{% endblock %}
+
+{% block auth_content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Criar Conta</h1>
+            <p>Junte-se ao Sistema de Encomendas</p>
+        </div>
+        
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            <!-- Nome Completo -->
+            <div class="form-group">
+                <label for="{{ form.nome_completo.id_for_label }}">{{ form.nome_completo.label }}</label>
+                {{ form.nome_completo }}
+                {% if form.nome_completo.errors %}
+                <small class="text-danger">{{ form.nome_completo.errors.0 }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Email -->
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <small class="text-danger">{{ form.email.errors.0 }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Identificação -->
+            <div class="form-group">
+                <label for="{{ form.identificacao.id_for_label }}">{{ form.identificacao.label }}</label>
+                {{ form.identificacao }}
+                {% if form.identificacao.errors %}
+                <small class="text-danger">{{ form.identificacao.errors.0 }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Cargo -->
+            <div class="form-group">
+                <label for="{{ form.cargo.id_for_label }}">{{ form.cargo.label }}</label>
+                {{ form.cargo }}
+                {% if form.cargo.errors %}
+                <small class="text-danger">{{ form.cargo.errors.0 }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Telefone -->
+            <div class="form-group">
+                <label for="{{ form.telefone.id_for_label }}">{{ form.telefone.label }}</label>
+                {{ form.telefone }}
+                {% if form.telefone.errors %}
+                <small class="text-danger">{{ form.telefone.errors.0 }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Senha -->
+            <div class="form-group">
+                <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+                <div class="password-toggle">
+                    {{ form.password1 }}
+                    <button type="button" class="toggle-btn" onclick="togglePassword('{{ form.password1.id_for_label }}')">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+                <small>{{ form.password1.help_text }}</small>
+                {% if form.password1.errors %}
+                <small class="text-danger">{{ form.password1.errors.0 }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Confirmar Senha -->
+            <div class="form-group">
+                <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+                <div class="password-toggle">
+                    {{ form.password2 }}
+                    <button type="button" class="toggle-btn" onclick="togglePassword('{{ form.password2.id_for_label }}')">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+                {% if form.password2.errors %}
+                <small class="text-danger">{{ form.password2.errors.0 }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Botão de Registro -->
+            <button type="submit" class="btn-register">
+                <i class="bi bi-person-plus me-2"></i>Criar Conta
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>Já tem conta? <a href="{% url 'login' %}">Faça login aqui</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.closest('.password-toggle').querySelector('.toggle-btn');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        button.innerHTML = '<i class="bi bi-eye-slash"></i>';
+    } else {
+        input.type = 'password';
+        button.innerHTML = '<i class="bi bi-eye"></i>';
+    }
+}
+</script>
+{% endblock %}

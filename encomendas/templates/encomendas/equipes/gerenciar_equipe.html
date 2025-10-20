@@ -1,0 +1,129 @@
+{% extends 'encomendas/base.html' %}
+
+{% block title %}{{ title }} - Sistema de Encomendas{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1><i class="bi bi-gear me-3"></i>{{ title }}</h1>
+            <p class="mb-0">{{ equipe.descricao }}</p>
+        </div>
+        <a href="{% url 'convidar_membro' equipe.id %}" class="btn btn-success">
+            <i class="bi bi-person-plus me-2"></i>Convidar Membro
+        </a>
+    </div>
+</div>
+
+<!-- Membros da Equipe -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Membros ({{ membros.count }})</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if membros %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Papel</th>
+                        <th>Data de Adesão</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for membro in membros %}
+                    <tr>
+                        <td>
+                            <strong>{{ membro.usuario.nome_completo }}</strong><br>
+                            <small class="text-muted">{{ membro.usuario.cargo }}</small>
+                        </td>
+                        <td>{{ membro.usuario.email }}</td>
+                        <td>
+                            <span class="badge bg-{% if membro.papel == 'administrador' %}danger{% elif membro.papel == 'gerente' %}warning{% else %}info{% endif %}">
+                                {{ membro.get_papel_display }}
+                            </span>
+                        </td>
+                        <td>{{ membro.data_adesao|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if membro.usuario != request.user %}
+                            <a href="{% url 'remover_membro' equipe.id membro.usuario.id %}" 
+                               class="btn btn-sm btn-danger"
+                               onclick="return confirm('Tem certeza que deseja remover este membro?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            {% else %}
+                            <span class="text-muted">(você)</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            Nenhum membro na equipe ainda.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Convites Pendentes -->
+{% if convites %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-envelope me-2"></i>Convites Pendentes ({{ convites.count }})</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Papel</th>
+                        <th>Enviado em</th>
+                        <th>Expira em</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for convite in convites %}
+                    <tr>
+                        <td>{{ convite.email }}</td>
+                        <td>
+                            <span class="badge bg-{% if convite.papel == 'gerente' %}warning{% else %}info{% endif %}">
+                                {{ convite.get_papel_display }}
+                            </span>
+                        </td>
+                        <td>{{ convite.data_criacao|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if convite.eh_valido %}
+                            <span class="text-success">{{ convite.data_expiracao|date:"d/m/Y" }}</span>
+                            {% else %}
+                            <span class="text-danger">Expirado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary" disabled>
+                                <i class="bi bi-clock"></i> Aguardando
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="mt-4">
+    <a href="{% url 'listar_equipes' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Voltar
+    </a>
+</div>
+{% endblock %}
+
