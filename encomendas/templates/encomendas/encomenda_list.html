@@ -242,54 +242,38 @@
 <!-- Estatísticas Rápidas -->
 <div class="row mt-4">
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card text-center h-100">
             <div class="card-body">
                 <i class="bi bi-clipboard-data text-primary" style="font-size: 2rem;"></i>
-                <h5 class="mt-2">{{ page_obj.paginator.count }}</h5>
-                <p class="text-muted mb-0">Total</p>
+                <h5 class="mt-2">{{ total_geral_filtrado }}</h5>
+                <p class="text-muted mb-0">Total Encontrado</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card text-center h-100">
             <div class="card-body">
                 <i class="bi bi-clock-history text-warning" style="font-size: 2rem;"></i>
-                <h5 class="mt-2">
-                    {% with pendentes=page_obj.object_list|length %}
-                        {% if current_status == 'criada' or current_status == 'cotacao' or current_status == 'aprovada' or current_status == 'em_andamento' %}
-                            {{ pendentes }}
-                        {% else %}
-                            -
-                        {% endif %}
-                    {% endwith %}
-                </h5>
+                <h5 class="mt-2">{{ total_pendentes_filtrado }}</h5>
                 <p class="text-muted mb-0">Pendentes</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card text-center h-100">
             <div class="card-body">
                 <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
-                <h5 class="mt-2">
-                    {% if current_status == 'entregue' %}
-                        {{ page_obj.object_list|length }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </h5>
+                <h5 class="mt-2">{{ total_entregues_filtrado }}</h5>
                 <p class="text-muted mb-0">Entregues</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card text-center h-100">
             <div class="card-body">
                 <i class="bi bi-currency-dollar text-info" style="font-size: 2rem;"></i>
-                <h5 class="mt-2">
-                    R$ {% widthratio page_obj.object_list|length 1 1000 %}K
-                </h5>
-                <p class="text-muted mb-0">Valor Aprox.</p>
+                <h5 class="mt-2">R$ {{ valor_total_filtrado|floatformat:2 }}</h5>
+                <p class="text-muted mb-0">Valor Total (Filtrado)</p>
             </div>
         </div>
     </div>

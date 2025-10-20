@@ -4,19 +4,42 @@
 
 {% block extra_css %}
 <style>
+    .form-section {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .section-title {
+        color: var(--text-color); /* Updated for dark mode */
+        font-weight: 600;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--border-color); /* Updated for dark mode */
+    }
+    
+    body.dark-mode .form-label { /* Ensure labels are readable */
+         color: var(--text-color);
+    }
+
     .formset-container {
-        background: #f8f9fa;
+        /* Use card background for contrast */
+        background: var(--card-bg); 
+        border: 1px solid var(--border-color); /* Add border */
         border-radius: 12px;
         padding: 20px;
         margin-bottom: 20px;
     }
     
     .item-form {
-        background: white;
+        /* Use body background for nested forms */
+        background: var(--bg-color); 
         border-radius: 8px;
         padding: 20px;
         margin-bottom: 15px;
-        border: 2px solid #e9ecef;
+        border: 1px solid var(--border-color); /* Use border color */
         position: relative;
         transition: all 0.3s ease;
     }
@@ -27,8 +50,8 @@
     }
     
     .item-form.to-delete {
-        background-color: #ffebee;
-        border-color: #f44336;
+        background-color: rgba(220, 53, 69, 0.1);
+        border-color: var(--danger-color);
         opacity: 0.7;
     }
     
@@ -54,28 +77,12 @@
         box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
         color: white;
     }
-    
-    .form-section {
-        background: white;
-        border-radius: 12px;
-        padding: 25px;
-        margin-bottom: 25px;
-        border: 1px solid #e9ecef;
-    }
-    
-    .section-title {
-        color: var(--primary-color);
-        font-weight: 600;
-        margin-bottom: 20px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #e9ecef;
-    }
-    
+
     .calculated-field {
-        background-color: #f8f9fa;
-        border: 2px dashed #dee2e6;
+        background-color: var(--form-control-bg);
+        border: 2px dashed var(--border-color);
         font-weight: bold;
-        color: var(--primary-color);
+        color: var(--text-muted-color); /* Use muted color */
     }
     
     .form-row {
@@ -84,8 +91,16 @@
     
     .required-field label::after {
         content: " *";
-        color: #dc3545;
+        color: var(--danger-color);
     }
+
+    /* Dark mode specific for input group text */
+    body.dark-mode .input-group-text {
+        background-color: var(--form-control-bg);
+        border-color: var(--form-control-border);
+        color: var(--text-muted-color);
+    }
+
 </style>
 {% endblock %}
 
@@ -94,9 +109,9 @@
     <div class="d-flex justify-content-between align-items-center">
         <div>
             <h1><i class="bi bi-clipboard-plus me-3"></i>{{ title }}</h1>
-            <p class="mb-0">Preencha os dados da encomenda conforme o formulário físico</p>
+            <p class="mb-0 text-muted">Preencha os dados da encomenda conforme o formulário físico</p>
         </div>
-        <a href="{% url 'encomenda_list' %}" class="btn btn-outline-light">
+        <a href="{% url 'encomenda_list' %}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-2"></i>Voltar
         </a>
     </div>
@@ -105,7 +120,6 @@
 <form method="post" id="encomendaForm">
     {% csrf_token %}
     
-    <!-- Informações Básicas -->
     <div class="form-section">
         <h4 class="section-title">
             <i class="bi bi-info-circle me-2"></i>Informações Básicas
@@ -123,7 +137,7 @@
             </div>
             {% endif %}
             
-            <div class="col-md-6 mb-3 required-field">
+            <div class="col-md-{% if encomenda %}6{% else %}12{% endif %} mb-3 required-field">
                 <label for="{{ form.cliente.id_for_label }}" class="form-label">{{ form.cliente.label }}</label>
                 {{ form.cliente }}
                 {% if form.cliente.errors %}
@@ -179,7 +193,6 @@
         </div>
     </div>
 
-    <!-- Itens da Encomenda -->
     <div class="form-section">
         <h4 class="section-title">
             <i class="bi bi-box me-2"></i>Itens da Encomenda
@@ -190,6 +203,8 @@
             
             <div id="formset-container">
                 {% for form in formset %}
+                    {# Check if this form should be displayed (not marked for deletion) #}
+                    {% if not form.DELETE.value %}
                     <div class="item-form" data-form-index="{{ forloop.counter0 }}">
                         {% if form.non_field_errors %}
                             <div class="alert alert-danger">{{ form.non_field_errors }}</div>
@@ -199,7 +214,7 @@
                             <button type="button" class="btn btn-danger btn-sm delete-btn delete-form" title="Remover Item">
                                 <i class="bi bi-trash"></i>
                             </button>
-                            {{ form.DELETE }}
+                            {{ form.DELETE }} {# Hidden field to mark deletion #}
                         {% endif %}
                         
                         <div class="row">
@@ -250,9 +265,21 @@
                         </div>
                         
                         {% for hidden in form.hidden_fields %}
-                            {{ hidden }}
+                             {# Ensure the DELETE field is not rendered twice if it was already handled #}
+                             {% if hidden.name != form.DELETE.html_name %}
+                                {{ hidden }}
+                             {% endif %}
                         {% endfor %}
                     </div>
+                    {% else %}
+                       {# Render hidden fields for forms marked for deletion #}
+                       {{ form.DELETE }}
+                       {% for hidden in form.hidden_fields %}
+                         {% if hidden.name != form.DELETE.html_name %}
+                            {{ hidden }}
+                         {% endif %}
+                       {% endfor %}
+                    {% endif %}
                 {% endfor %}
             </div>
             
@@ -264,7 +291,6 @@
         </div>
     </div>
 
-    <!-- Botões de Ação -->
     <div class="form-section">
         <div class="d-flex justify-content-between">
             <a href="{% url 'encomenda_list' %}" class="btn btn-secondary">
@@ -287,7 +313,6 @@
     </div>
 </form>
 
-<!-- Template para novos itens -->
 <div id="empty-form" style="display: none;">
     <div class="item-form" data-form-index="__prefix__">
         <button type="button" class="btn btn-danger btn-sm delete-btn delete-form" title="Remover Item">
@@ -296,22 +321,22 @@
         
         <div class="row">
             <div class="col-md-4 mb-3 required-field">
-                <label class="form-label">Produto</label>
+                <label for="id_itens-__prefix__-produto" class="form-label">Produto</label> {# Added for attribute #}
                 {{ formset.empty_form.produto }}
             </div>
             
             <div class="col-md-4 mb-3 required-field">
-                <label class="form-label">Fornecedor</label>
+                <label for="id_itens-__prefix__-fornecedor" class="form-label">Fornecedor</label> {# Added for attribute #}
                 {{ formset.empty_form.fornecedor }}
             </div>
             
             <div class="col-md-2 mb-3 required-field">
-                <label class="form-label">Quantidade</label>
+                <label for="id_itens-__prefix__-quantidade" class="form-label">Quantidade</label> {# Added for attribute #}
                 {{ formset.empty_form.quantidade }}
             </div>
             
             <div class="col-md-2 mb-3 required-field">
-                <label class="form-label">Preço Cotado</label>
+                <label for="id_itens-__prefix__-preco_cotado" class="form-label">Preço Cotado</label> {# Added for attribute #}
                 <div class="input-group">
                     <span class="input-group-text">R$</span>
                     {{ formset.empty_form.preco_cotado }}
@@ -321,7 +346,7 @@
         
         <div class="row">
             <div class="col-12 mb-3">
-                <label class="form-label">Observações</label>
+                <label for="id_itens-__prefix__-observacoes" class="form-label">Observações</label> {# Added for attribute #}
                 {{ formset.empty_form.observacoes }}
             </div>
         </div>
@@ -329,6 +354,7 @@
         {% for hidden in formset.empty_form.hidden_fields %}
             {{ hidden }}
         {% endfor %}
+        {# Include the DELETE field in the template #}
         {{ formset.empty_form.DELETE }}
     </div>
 </div>
@@ -340,89 +366,91 @@ document.addEventListener('DOMContentLoaded', function() {
     const formsetContainer = document.getElementById('formset-container');
     const addButton = document.getElementById('add-form');
     const totalFormsInput = document.getElementById('id_itens-TOTAL_FORMS');
+    const emptyFormTemplate = document.getElementById('empty-form').innerHTML;
+    const initialFormsCount = {{ formset.initial_form_count }}; // Get count of existing forms
     
-    // Função para atualizar índices dos formulários
+    // Function to update form indexes
     function updateFormIndexes() {
         const forms = formsetContainer.querySelectorAll('.item-form');
-        forms.forEach((form, index) => {
-            form.setAttribute('data-form-index', index);
-            
-            // Atualizar todos os campos do formulário
-            const inputs = form.querySelectorAll('input, select, textarea');
-            inputs.forEach(input => {
-                const name = input.getAttribute('name');
-                const id = input.getAttribute('id');
-                
-                if (name) {
-                    input.setAttribute('name', name.replace(/itens-\d+/, `itens-${index}`));
-                }
-                if (id) {
-                    input.setAttribute('id', id.replace(/itens-\d+/, `itens-${index}`));
-                }
-            });
-            
-            // Atualizar labels
-            const labels = form.querySelectorAll('label');
-            labels.forEach(label => {
-                const forAttr = label.getAttribute('for');
-                if (forAttr) {
-                    label.setAttribute('for', forAttr.replace(/itens-\d+/, `itens-${index}`));
-                }
-            });
+        let visibleFormIndex = 0; // Index for prefix replacement
+        forms.forEach((form) => {
+             // Only update inputs/labels for forms not marked for deletion initially
+            if (!form.querySelector('input[name$="-DELETE"]:checked')) {
+                 form.setAttribute('data-form-index', visibleFormIndex);
+                const inputs = form.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    const name = input.getAttribute('name');
+                    const id = input.getAttribute('id');
+                    if (name) {
+                        input.setAttribute('name', name.replace(/itens-\d+/, `itens-${visibleFormIndex}`));
+                    }
+                    if (id) {
+                        input.setAttribute('id', id.replace(/itens-\d+/, `itens-${visibleFormIndex}`));
+                    }
+                });
+                const labels = form.querySelectorAll('label');
+                labels.forEach(label => {
+                    const forAttr = label.getAttribute('for');
+                    if (forAttr) {
+                        label.setAttribute('for', forAttr.replace(/itens-\d+/, `itens-${visibleFormIndex}`));
+                    }
+                });
+                visibleFormIndex++;
+             }
         });
-        
-        // Atualizar total de formulários
+        // Total forms includes potentially hidden ones marked for deletion
         totalFormsInput.value = forms.length;
     }
     
-    // Adicionar novo formulário
+    // Add new form
     addButton.addEventListener('click', function() {
-        const emptyForm = document.getElementById('empty-form');
-        const newForm = emptyForm.innerHTML;
-        const formCount = formsetContainer.children.length;
-        
-        const newFormHtml = newForm.replace(/__prefix__/g, formCount);
+        const formCount = parseInt(totalFormsInput.value); // Use total forms value
+        const newFormHtml = emptyFormTemplate.replace(/__prefix__/g, formCount);
         formsetContainer.insertAdjacentHTML('beforeend', newFormHtml);
+        totalFormsInput.value = formCount + 1; // Increment total forms
         
-        updateFormIndexes();
-        
-        // Adicionar event listener para o botão de deletar
         const newFormElement = formsetContainer.lastElementChild;
-        const deleteBtn = newFormElement.querySelector('.delete-form');
-        deleteBtn.addEventListener('click', function() {
-            deleteForm(newFormElement);
-        });
+        addDeleteListener(newFormElement.querySelector('.delete-form'));
     });
     
-    // Função para deletar formulário
+    // Function to handle form deletion
     function deleteForm(formElement) {
         const deleteInput = formElement.querySelector('input[name$="-DELETE"]');
-        
         if (deleteInput) {
             deleteInput.checked = true;
+            formElement.style.display = 'none'; // Hide the form visually
             formElement.classList.add('to-delete');
-            formElement.style.display = 'none';
+            // Re-index might not be strictly necessary if server handles gaps,
+            // but can be called if needed: updateFormIndexes();
         } else {
+            // This case might happen if dynamically added forms don't have DELETE yet
             formElement.remove();
-            updateFormIndexes();
+            updateFormIndexes(); // Re-index after removing
         }
     }
+
+    // Function to attach delete listener
+    function addDeleteListener(btn) {
+         if (btn) { // Check if button exists
+            btn.addEventListener('click', function() {
+                const formElement = this.closest('.item-form');
+                deleteForm(formElement);
+            });
+         }
+    }
     
-    // Adicionar event listeners para botões de deletar existentes
+    // Add event listeners to existing delete buttons
     document.querySelectorAll('.delete-form').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const formElement = this.closest('.item-form');
-            deleteForm(formElement);
-        });
+        addDeleteListener(btn);
     });
     
-    // Auto-preenchimento de preço baseado no produto selecionado
-    document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('produto-select')) {
+    // Auto-prefill price based on product selection
+    formsetContainer.addEventListener('change', function(e) { // Use event delegation
+        if (e.target && e.target.classList.contains('produto-select')) {
             const produtoId = e.target.value;
             if (produtoId) {
                 fetch(`/api/produto/${produtoId}/`)
-                    .then(response => response.json())
+                    .then(response => response.ok ? response.json() : Promise.reject('Network response was not ok.'))
                     .then(data => {
                         const formElement = e.target.closest('.item-form');
                         const precoInput = formElement.querySelector('input[name$="-preco_cotado"]');
@@ -430,41 +458,19 @@ document.addEventListener('DOMContentLoaded', function() {
                             precoInput.value = data.preco_base;
                         }
                     })
-                    .catch(error => console.error('Erro ao buscar dados do produto:', error));
+                    .catch(error => console.error('Error fetching product data:', error));
             }
         }
     });
-    
-    // Validação do formulário
-    document.getElementById('encomendaForm').addEventListener('submit', function(e) {
-        const visibleForms = formsetContainer.querySelectorAll('.item-form:not(.to-delete):not([style*="display: none"])');
-        
-        if (visibleForms.length === 0) {
-            e.preventDefault();
-            alert('É necessário adicionar pelo menos um item à encomenda.');
-            return false;
-        }
-        
-        // Validar campos obrigatórios dos itens visíveis
-        let hasErrors = false;
-        visibleForms.forEach(form => {
-            const requiredFields = form.querySelectorAll('.required-field input, .required-field select');
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    field.classList.add('is-invalid');
-                    hasErrors = true;
-                } else {
-                    field.classList.remove('is-invalid');
-                }
-            });
-        });
-        
-        if (hasErrors) {
-            e.preventDefault();
-            alert('Por favor, preencha todos os campos obrigatórios.');
-            return false;
-        }
-    });
+
+    // Initial check: If it's a new form (no initial forms) and the formset generated zero forms (because extra=0), add one.
+     // RENDERED forms already respect 'extra=1'. No need for JS to add the first one.
+    // if (initialFormsCount === 0 && formsetContainer.children.length === 0) {
+    //     addButton.click();
+    // }
+
+    // Re-index forms on initial load (important for editing existing forms)
+    updateFormIndexes();
 });
 </script>
 {% endblock %}

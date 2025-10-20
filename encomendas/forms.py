@@ -1,6 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Encomenda, Cliente, Produto, Fornecedor, ItemEncomenda, Entrega
+from datetime import date
 
 
 class ClienteForm(forms.ModelForm):
@@ -48,10 +49,12 @@ class EncomendaForm(forms.ModelForm):
         model = Encomenda
         fields = ['cliente', 'data_encomenda', 'responsavel_criacao', 'status', 'observacoes']
         widgets = {
-            'cliente': forms.Select(attrs={'class': 'form-control'}),
+            # Use form-select for dropdowns
+            'cliente': forms.Select(attrs={'class': 'form-select'}),
             'data_encomenda': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'responsavel_criacao': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome do responsável'}),
-            'status': forms.Select(attrs={'class': 'form-control'}),
+             # Use form-select for dropdowns
+            'status': forms.Select(attrs={'class': 'form-select'}),
             'observacoes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Observações gerais sobre a encomenda (campo Observação do formulário físico)'}),
         }
 
@@ -59,10 +62,9 @@ class EncomendaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['cliente'].queryset = Cliente.objects.all().order_by('nome')
         self.fields['cliente'].empty_label = "Selecione um cliente"
-        
+
         # Definir data padrão como hoje se não especificada
         if not self.instance.pk and 'data_encomenda' not in self.initial:
-            from datetime import date
             self.initial['data_encomenda'] = date.today()
 
 
@@ -71,8 +73,10 @@ class ItemEncomendaForm(forms.ModelForm):
         model = ItemEncomenda
         fields = ['produto', 'fornecedor', 'quantidade', 'preco_cotado', 'observacoes']
         widgets = {
-            'produto': forms.Select(attrs={'class': 'form-control produto-select'}),
-            'fornecedor': forms.Select(attrs={'class': 'form-control'}),
+             # Use form-select for dropdowns
+            'produto': forms.Select(attrs={'class': 'form-select produto-select'}),
+             # Use form-select for dropdowns
+            'fornecedor': forms.Select(attrs={'class': 'form-select'}),
             'quantidade': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'value': '1'}),
             'preco_cotado': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00'}),
             'observacoes': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Observações do item (opcional)'}),
@@ -86,14 +90,14 @@ class ItemEncomendaForm(forms.ModelForm):
         self.fields['fornecedor'].empty_label = "Selecione um fornecedor"
 
 
-# Formset para itens da encomenda
+# Formset for encomenda items
 ItemEncomendaFormSet = inlineformset_factory(
-    Encomenda, 
-    ItemEncomenda, 
+    Encomenda,
+    ItemEncomenda,
     form=ItemEncomendaForm,
-    extra=1,
+    extra=0, # Changed from 0 back to 1
     can_delete=True,
-    min_num=1,
+    min_num=1, # Keep minimum as 1
     validate_min=True
 )
 
@@ -102,64 +106,53 @@ class EntregaForm(forms.ModelForm):
     class Meta:
         model = Entrega
         fields = [
-            # Campos principais do formulário físico
             'data_entrega', 'responsavel_entrega', 'valor_pago_adiantamento',
-            # Campos da seção inferior
             'data_entrega_realizada', 'hora_entrega', 'entregue_por', 'assinatura_cliente',
-            # Campos de controle interno
             'data_prevista', 'observacoes_entrega'
         ]
         widgets = {
-            # Campos principais
             'data_entrega': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'responsavel_entrega': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Responsável pela entrega'}),
             'valor_pago_adiantamento': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00'}),
-            
-            # Campos da seção inferior (execução)
             'data_entrega_realizada': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'hora_entrega': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
             'entregue_por': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome de quem entregou'}),
             'assinatura_cliente': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Assinatura do cliente'}),
-            
-            # Campos de controle
             'data_prevista': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'observacoes_entrega': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Observações sobre a entrega'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Campos obrigatórios do formulário físico
         self.fields['data_entrega'].required = True
         self.fields['responsavel_entrega'].required = True
-        
-        # Campos opcionais (preenchidos quando a entrega é realizada)
         self.fields['data_entrega_realizada'].required = False
         self.fields['hora_entrega'].required = False
         self.fields['entregue_por'].required = False
         self.fields['assinatura_cliente'].required = False
         self.fields['data_prevista'].required = False
         self.fields['observacoes_entrega'].required = False
-        
-        # Definir data padrão como hoje se não especificada
+
         if not self.instance.pk and 'data_entrega' not in self.initial:
-            from datetime import date
             self.initial['data_entrega'] = date.today()
 
 
 class FiltroEncomendaForm(forms.Form):
     """Formulário para filtros na listagem de encomendas"""
     STATUS_CHOICES = [('', 'Todos os status')] + list(Encomenda.STATUS_CHOICES)
-    
+
     status = forms.ChoiceField(
         choices=STATUS_CHOICES,
         required=False,
-        widget=forms.Select(attrs={'class': 'form-control'})
+        # Use form-select for dropdowns
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
     cliente = forms.ModelChoiceField(
         queryset=Cliente.objects.all().order_by('nome'),
         required=False,
         empty_label="Todos os clientes",
-        widget=forms.Select(attrs={'class': 'form-control'})
+        # Use form-select for dropdowns
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
     search = forms.CharField(
         required=False,
@@ -168,5 +161,3 @@ class FiltroEncomendaForm(forms.Form):
             'placeholder': 'Buscar por número, cliente ou código...'
         })
     )
-
-

@@ -4,11 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Sistema de Encomendas - Drogaria Benfica{% endblock %}</title>
-
+    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 
     <style>
         :root {
@@ -17,11 +21,48 @@
             --accent-color: #28a745;
             --danger-color: #dc3545;
             --warning-color: #ffc107;
+
+            /* Light Theme Variables */
+            --bg-color: #f5f5f5;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --navbar-bg: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+            --form-control-bg: #ffffff;
+            --form-control-border: #e9ecef;
+            --table-hover-bg: #f8f9fa;
+            --text-muted-color: #6c757d;
+            --border-color: #dee2e6;
+            --link-color: #2c5aa0;
+            --btn-outline-color: #6c757d;
+        }
+
+        body.dark-mode {
+            /* Dark Theme Variables */
+            --primary-color: #cccccc; /* Light Gray for accents */
+            --bg-color: #1a1a1a;
+            --text-color: #f5f5f5; /* Brighter white for better readability */
+            --card-bg: #2a2a2a;
+            --navbar-bg: #212121;
+            --sidebar-bg: #212121;
+            --form-control-bg: #333333;
+            --form-control-border: #4a4a4a;
+            --table-hover-bg: #3a3a3a;
+            --text-muted-color: #b0b0b0; /* Lighter muted text */
+            --border-color: #424242;
+            --link-color: #8cb4ff;
+            --btn-outline-color: #b0b0b0;
         }
 
         body {
-            background-color: #f5f5f5;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        a {
+            color: var(--link-color);
         }
 
         /* Styles for authenticated layout */
@@ -29,17 +70,23 @@
             font-weight: bold;
             color: var(--primary-color) !important;
         }
+        
+        body.dark-mode .navbar-brand {
+            color: var(--text-color) !important;
+        }
 
         .navbar {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            background: var(--navbar-bg);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .card {
-            border: none;
+            border: 1px solid var(--border-color);
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background-color: var(--card-bg);
         }
 
         .card:hover {
@@ -48,19 +95,39 @@
         }
 
         .card-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #1e3a8a 100%);
+            background: linear-gradient(135deg, #2c5aa0 0%, #1e3a8a 100%);
             color: white;
-            border-radius: 12px 12px 0 0 !important;
+            border-radius: 11px 11px 0 0 !important;
             font-weight: 600;
+            border-bottom: none;
+        }
+
+        body.dark-mode .card-header {
+             background: #333;
+             border-bottom: 1px solid var(--border-color);
+        }
+        
+        body.dark-mode .card-body, body.dark-mode .list-group-item {
+            color: var(--text-color);
+        }
+
+        .list-group-item {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #1e3a8a 100%);
+            background: linear-gradient(135deg, #2c5aa0 0%, #1e3a8a 100%);
             border: none;
             border-radius: 8px;
             padding: 10px 20px;
             font-weight: 500;
             transition: all 0.3s ease;
+        }
+
+        body.dark-mode .btn-primary {
+            background: #588cbf; /* Keep a distinct blue for primary buttons in dark mode */
+            color: #ffffff;
         }
 
         .btn-primary:hover {
@@ -79,16 +146,63 @@
             border: none;
             border-radius: 8px;
         }
+        
+        /* Outline Buttons Dark Mode */
+        body.dark-mode .btn-outline-primary {
+            color: var(--btn-outline-color);
+            border-color: var(--btn-outline-color);
+        }
+        body.dark-mode .btn-outline-primary:hover {
+            background-color: var(--btn-outline-color);
+            color: #1a1a1a;
+        }
+        body.dark-mode .btn-outline-secondary {
+            color: var(--btn-outline-color);
+            border-color: var(--btn-outline-color);
+        }
+        body.dark-mode .btn-outline-secondary:hover {
+            background-color: var(--btn-outline-color);
+            color: #1a1a1a;
+        }
+        body.dark-mode .btn-outline-info {
+            color: #8cb4ff;
+            border-color: #8cb4ff;
+        }
+        body.dark-mode .btn-outline-info:hover {
+            background-color: #8cb4ff;
+            color: #1a1a1a;
+        }
 
-        .form-control {
+
+        .form-control, .form-select { /* Applied base styles to form-select too */
             border-radius: 8px;
-            border: 2px solid #e9ecef;
+            background-color: var(--form-control-bg);
+            color: var(--text-color);
+            border: 2px solid var(--form-control-border);
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.25);
+        .form-control:focus, .form-select:focus { /* Applied focus styles to form-select too */
+            border-color: #588cbf; /* Use the brighter blue for focus */
+            box-shadow: 0 0 0 0.2rem rgba(88, 140, 191, 0.25);
+            background-color: var(--form-control-bg);
+            color: var(--text-color);
+        }
+
+        /* Default select arrow */
+        select.form-select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right .75rem center;
+            background-size: 16px 12px;
+        }
+
+        /* Dark mode select arrow */
+        body.dark-mode select.form-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e0e0e0' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
         }
 
         .status-badge {
@@ -105,16 +219,24 @@
         .status-pronta { background-color: #e1f5fe; color: #0288d1; }
         .status-entregue { background-color: #e8f5e8; color: #2e7d32; }
         .status-cancelada { background-color: #ffebee; color: #d32f2f; }
+        
+        body.dark-mode .status-criada { background-color: rgba(25, 118, 210, 0.2); color: #90caf9; }
+        body.dark-mode .status-cotacao { background-color: rgba(245, 124, 0, 0.2); color: #ffcc80; }
+        body.dark-mode .status-aprovada { background-color: rgba(56, 142, 60, 0.2); color: #a5d6a7; }
+        body.dark-mode .status-em_andamento { background-color: rgba(249, 168, 37, 0.2); color: #ffe082; }
+        body.dark-mode .status-pronta { background-color: rgba(2, 136, 209, 0.2); color: #81d4fa; }
+        body.dark-mode .status-entregue { background-color: rgba(46, 125, 50, 0.2); color: #a5d6a7; }
+        body.dark-mode .status-cancelada { background-color: rgba(211, 47, 47, 0.2); color: #ef9a9a; }
 
         .sidebar {
-            background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
-            min-height: calc(100vh - 76px); /* Adjust height based on navbar */
-            border-right: 1px solid #dee2e6;
-            padding-top: 1rem; /* Add some padding */
+            background: var(--sidebar-bg);
+            min-height: calc(100vh - 58px);
+            border-right: 1px solid var(--border-color);
+            padding-top: 1rem;
         }
 
         .sidebar .nav-link {
-            color: #495057;
+            color: var(--text-muted-color);
             padding: 12px 20px;
             border-radius: 8px;
             margin: 4px 8px;
@@ -122,13 +244,21 @@
         }
 
         .sidebar .nav-link:hover {
-            background-color: var(--primary-color);
+            background-color: #424242; /* Use a neutral gray for hover */
             color: white;
             transform: translateX(5px);
         }
 
         .sidebar .nav-link.active {
-            background-color: var(--primary-color);
+            background-color: #424242; /* Use a neutral gray for active */
+            color: white;
+        }
+        
+        body.dark-mode .navbar-text, body.dark-mode .nav-link {
+            color: var(--text-muted-color);
+        }
+        
+        body.dark-mode a.nav-link:hover {
             color: white;
         }
 
@@ -137,42 +267,80 @@
         }
 
         .page-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #1e3a8a 100%);
+            background: linear-gradient(135deg, #2c5aa0 0%, #1e3a8a 100%);
             color: white;
             padding: 30px;
             border-radius: 12px;
             margin-bottom: 30px;
         }
+        
+        body.dark-mode .page-header {
+            background: #2a2a2a;
+            border: 1px solid var(--border-color);
+        }
+        
+        body.dark-mode .page-header h1, body.dark-mode .page-header p {
+             color: var(--text-color);
+        }
 
         .stats-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            background: var(--card-bg);
             border-left: 4px solid var(--primary-color);
+        }
+        
+        /* Override Bootstrap's text colors in dark mode for stats cards */
+        body.dark-mode .stats-card .text-primary,
+        body.dark-mode .stats-card .text-warning,
+        body.dark-mode .stats-card .text-success {
+            color: var(--text-color) !important;
+        }
+        
+        /* Fix for muted text in all contexts */
+        body.dark-mode .text-muted {
+            color: var(--text-muted-color) !important;
         }
 
         .table {
-            background: white;
+            background: var(--card-bg);
+            color: var(--text-color);
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        
+        .table th, .table td {
+             border-color: var(--border-color);
+        }
 
         .table thead th {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
+            background-color: #333333;
+            color: #e0e0e0;
+            border-bottom: 2px solid var(--border-color);
             font-weight: 600;
         }
 
         .table tbody tr:hover {
-            background-color: #f8f9fa;
+            background-color: var(--table-hover-bg);
+        }
+        
+        .pagination .page-link {
+            background-color: var(--card-bg);
+            color: var(--link-color);
+            border-color: var(--border-color);
+        }
+        
+        .pagination .page-item.active .page-link {
+            background-color: #588cbf;
+            border-color: #588cbf;
+            color: white;
         }
 
         .formset-row {
-            background: #f8f9fa;
+            background: var(--table-hover-bg);
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 15px;
-            border: 2px solid #e9ecef;
+            border: 2px solid var(--form-control-border);
             transition: border-color 0.3s ease;
         }
 
@@ -189,6 +357,19 @@
             opacity: 0.6;
             pointer-events: none;
         }
+        
+        /* Dark Mode Toggle Styles */
+        .theme-toggle {
+            cursor: pointer;
+            font-size: 1.25rem;
+            line-height: 1;
+            color: var(--text-muted-color);
+        }
+        .theme-toggle .bi-sun-fill { display: none; }
+        .theme-toggle .bi-moon-fill { display: inline-block; }
+        body.dark-mode .theme-toggle .bi-sun-fill { display: inline-block; }
+        body.dark-mode .theme-toggle .bi-moon-fill { display: none; }
+
 
         /* Styles specifically for auth pages */
         .auth-wrapper {
@@ -198,18 +379,55 @@
             align-items: center;
             justify-content: center;
         }
+        
+        body.dark-mode .auth-wrapper {
+             background: #1a1a1a;
+        }
+        
+        /* Dark Mode Styles for Encomenda Detail Page */
+        body.dark-mode .action-buttons {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        body.dark-mode .formulario-fisico {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+        body.dark-mode .formulario-fisico .formulario-header,
+        body.dark-mode .formulario-fisico .campo-formulario {
+            border-color: var(--border-color);
+        }
+        body.dark-mode .formulario-fisico .numero-encomenda,
+        body.dark-mode .formulario-fisico .secao-entrega,
+        body.dark-mode .formulario-fisico .tabela-itens th {
+            background-color: #333;
+            border-color: var(--border-color);
+        }
+        body.dark-mode .formulario-fisico .tabela-itens th,
+        body.dark-mode .formulario-fisico .tabela-itens td {
+            border-color: var(--border-color);
+        }
+        body.dark-mode .formulario-fisico .logo-area h3 span {
+            background: #444;
+            color: var(--text-color);
+        }
+         body.dark-mode .formulario-fisico .logo-area h2 {
+            color: var(--primary-color);
+        }
+
 
         @media (max-width: 992px) { /* Changed breakpoint to lg */
             .sidebar {
                 position: fixed;
-                top: 76px; /* Match navbar height */
+                top: 58px; /* Match navbar height */
                 left: -250px;
                 width: 250px;
-                height: calc(100vh - 76px);
+                height: calc(100vh - 58px);
                 z-index: 1000;
                 transition: left 0.3s ease;
-                background: white; /* Ensure it has a background */
-                box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Add shadow */
+                background: var(--sidebar-bg);
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
             }
 
             .sidebar.show {
@@ -229,12 +447,21 @@
 
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="dark-mode"> {# Set dark-mode by default #}
+<script>
+    // Apply theme immediately, defaulting to dark if no setting is found
+    (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'light') {
+            document.body.classList.remove('dark-mode');
+        }
+    })();
+</script>
 
     {% if user.is_authenticated %}
         <!-- ==== AUTHENTICATED USER LAYOUT ==== -->
         <!-- Navbar -->
-        <nav class="navbar navbar-expand-lg navbar-light">
+        <nav class="navbar navbar-expand-lg">
             <div class="container-fluid">
                 <button class="btn btn-outline-primary d-lg-none me-3" type="button" id="sidebarToggle">
                     <i class="bi bi-list"></i>
@@ -242,14 +469,20 @@
 
                 <a class="navbar-brand" href="{% url 'dashboard' %}">
                     <i class="bi bi-clipboard-check me-2"></i>
-                    Sistema de Encomendas - Drogaria Benfica
+                    Sistema de Encomendas
                 </a>
 
                 <div class="navbar-nav ms-auto d-flex flex-row align-items-center">
                     {% if user.is_authenticated %}
-                        <span class="navbar-text me-3">
-                            Olá, {{ user.nome_completo|default:user.username }}
+                        <span class="navbar-text me-3 d-none d-sm-inline">
+                            Olá, {{ user.nome_completo|default:user.username|truncatechars:15 }}
                         </span>
+                        
+                        <div id="theme-toggle" class="theme-toggle me-3" title="Alterar tema">
+                            <i class="bi bi-moon-fill"></i>
+                            <i class="bi bi-sun-fill"></i>
+                        </div>
+                        
                         <a class="nav-link me-2" href="{% url 'perfil' %}" title="Meu Perfil">
                             <i class="bi bi-person-circle"></i>
                         </a>
@@ -264,7 +497,7 @@
                         <form action="{% url 'logout' %}" method="post" class="d-inline" id="logout-form">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-outline-danger btn-sm" title="Sair">
-                                <i class="bi bi-box-arrow-right"></i> Sair
+                                <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Sair</span>
                             </button>
                         </form>
                     {% endif %}
@@ -325,15 +558,14 @@
                         {% endfor %}
                     {% endif %}
 
-                    {% block content %}{% endblock %} {# This is the main content block for authenticated pages #}
+                    {% block content %}{% endblock %}
                 </main>
             </div>
         </div>
 
     {% else %}
-        <!-- ==== UNAUTHENTICATED USER LAYOUT (Login, Register, etc.) ==== -->
+        <!-- ==== UNAUTHENTICATED USER LAYOUT ==== -->
         <div class="auth-wrapper">
-             <!-- Messages for auth pages -->
              {% if messages %}
                 <div style="position: absolute; top: 20px; width: 100%; z-index: 1050; padding: 0 20px;">
                  {% for message in messages %}
@@ -345,52 +577,66 @@
                  {% endfor %}
                 </div>
              {% endif %}
-             {% block auth_content %}{% endblock %} {# This block is used by login.html, registro.html, etc. #}
+             {% block auth_content %}{% endblock %}
         </div>
 
     {% endif %}
 
+    <!-- JQuery (required for Select2) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
-        // Sidebar toggle for mobile (only if sidebar exists)
-        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
-            document.getElementById('sidebar')?.classList.toggle('show');
-        });
-
-        // Auto-hide alerts after 5 seconds
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
-                    const bsAlertInstance = bootstrap.Alert.getInstance(alert);
-                    if (bsAlertInstance) {
-                        bsAlertInstance.close();
-                    } else {
-                        const newBsAlert = new bootstrap.Alert(alert);
-                        if (newBsAlert) {
-                           newBsAlert.close();
-                        }
-                    }
-                } else {
-                    alert.style.display = 'none';
-                }
-            });
-        }, 5000);
-
-        // Form validation feedback
         document.addEventListener('DOMContentLoaded', function() {
+            // Theme Toggler Logic
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    document.body.classList.toggle('dark-mode');
+                    const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+                    localStorage.setItem('theme', theme);
+                });
+            }
+
+            // Sidebar toggle for mobile
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    document.getElementById('sidebar')?.classList.toggle('show');
+                });
+            }
+
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(alert => {
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
+                        const bsAlertInstance = bootstrap.Alert.getInstance(alert);
+                        if (bsAlertInstance) {
+                            bsAlertInstance.close();
+                        } else {
+                            const newBsAlert = new bootstrap.Alert(alert);
+                            if (newBsAlert) {
+                               newBsAlert.close();
+                            }
+                        }
+                    } else {
+                        alert.style.display = 'none';
+                    }
+                });
+            }, 5000);
+
+            // Form submission feedback
             const forms = document.querySelectorAll('form');
             forms.forEach(form => {
                 form.addEventListener('submit', function() {
                     const submitBtn = form.querySelector('button[type="submit"]');
-                    if (submitBtn) {
-                        // Avoid disabling if it's the logout button
-                        if (!submitBtn.closest('#logout-form')) {
-                            submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processando...';
-                            submitBtn.disabled = true;
-                        }
+                    if (submitBtn && !submitBtn.closest('#logout-form')) {
+                        submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processando...';
+                        submitBtn.disabled = true;
                     }
                 });
             });
@@ -400,3 +646,4 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+

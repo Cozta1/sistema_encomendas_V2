@@ -1,17 +1,16 @@
 from django.urls import path, include
-# Import RedirectView
 from django.views.generic.base import RedirectView
 from encomendas import views_auth
 from . import views
 
 urlpatterns = [
-    # Change the root path '' to redirect to the login page
+    # Redirecionamento da raiz para a página de login
     path('', RedirectView.as_view(pattern_name='login', permanent=False), name='root_redirect'),
 
-    # Give the dashboard its own path
+    # Dashboard
     path('dashboard/', views.dashboard, name='dashboard'),
 
-    # Encomendas (paths remain the same relative to the include)
+    # Encomendas
     path('encomendas/', views.encomenda_list, name='encomenda_list'),
     path('encomendas/nova/', views.encomenda_create, name='encomenda_create'),
     path('encomendas/<int:pk>/', views.encomenda_detail, name='encomenda_detail'),
@@ -41,6 +40,8 @@ urlpatterns = [
     # API endpoints
     path('api/produto/<int:produto_id>/', views.api_produto_info, name='api_produto_info'),
     path('api/encomenda/<int:encomenda_pk>/status/', views.api_update_status, name='api_update_status'),
+    # NOVO URL PARA A PESQUISA DE PRODUTOS
+    path('api/search-produtos/', views.search_produtos, name='search_produtos'),
 
     # --- Authentication URLs ---
     path('auth/registro/', views_auth.registro, name='registro'),
