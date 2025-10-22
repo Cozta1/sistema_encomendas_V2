@@ -4,68 +4,69 @@
 
 {% block extra_css %}
 <style>
-    /* body style removed, now handled by .auth-wrapper in base.html */
-
+    /* Styles are now inside .auth-wrapper provided by base.html */
     .auth-container {
         width: 100%;
         max-width: 450px;
         padding: 20px;
     }
-    
+
     .auth-card {
-        background: white;
+        background: var(--card-bg); /* Use CSS variable */
+        color: var(--text-color); /* Use CSS variable */
         border-radius: 12px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         padding: 40px;
+        border: 1px solid var(--border-color); /* Add border for dark mode */
     }
-    
+
     .auth-header {
         text-align: center;
         margin-bottom: 30px;
     }
-    
+
     .auth-header h1 {
         font-size: 28px;
-        color: #333;
+        color: var(--text-color); /* Use CSS variable */
         margin-bottom: 10px;
     }
-    
+
     .auth-header p {
-        color: #666;
+        color: var(--text-muted-color); /* Use CSS variable */
         font-size: 14px;
     }
-    
+
     .form-group {
         margin-bottom: 20px;
     }
-    
+
     .form-group label {
         display: block;
         margin-bottom: 8px;
-        color: #333;
+        color: var(--text-color); /* Use CSS variable */
         font-weight: 500;
         font-size: 14px;
     }
-    
-    .form-group input {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 14px;
-        transition: border-color 0.3s;
+
+     /* Input styles inherited from base.html */
+     .form-group small { /* Style help text and errors */
+        display: block;
+        margin-top: 6px;
+        color: var(--text-muted-color); /* Use CSS variable */
+        font-size: 12px;
     }
-    
-    .form-group input:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-    
+     body.dark-mode .form-group small.text-danger { /* Style specific errors */
+        color: #f89b9b; /* Lighter red for dark mode */
+     }
+     body:not(.dark-mode) .form-group small.text-danger {
+        color: var(--danger-color);
+     }
+
+
     .password-toggle {
         position: relative;
     }
-    
+
     .password-toggle .toggle-btn {
         position: absolute;
         right: 12px;
@@ -74,25 +75,18 @@
         background: none;
         border: none;
         cursor: pointer;
-        color: #667eea;
+        color: var(--link-color); /* Use CSS variable */
         font-size: 18px;
     }
-    
-    .password-toggle input {
+
+    .password-toggle input.form-control { /* Specific target */
         padding-right: 40px;
     }
-    
-    .form-group small {
-        display: block;
-        margin-top: 6px;
-        color: #999;
-        font-size: 12px;
-    }
-    
+
     .btn-submit {
         width: 100%;
         padding: 12px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #588cbf 0%, #4a6fa5 100%); /* Adjusted gradient */
         color: white;
         border: none;
         border-radius: 6px;
@@ -101,25 +95,25 @@
         cursor: pointer;
         transition: transform 0.2s, box-shadow 0.2s;
     }
-    
+
     .btn-submit:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 5px 20px rgba(88, 140, 191, 0.4);
     }
-    
+
     .auth-footer {
         text-align: center;
         margin-top: 20px;
         padding-top: 20px;
-        border-top: 1px solid #eee;
+        border-top: 1px solid var(--border-color); /* Use CSS variable */
     }
-    
+
     .auth-footer a {
-        color: #667eea;
+        color: var(--link-color); /* Use CSS variable */
         text-decoration: none;
         font-weight: 500;
     }
-    
+
     .auth-footer a:hover {
         text-decoration: underline;
     }
@@ -133,15 +127,26 @@
             <h1>Criar Nova Senha</h1>
             <p>Digite sua nova senha abaixo</p>
         </div>
-        
+
+        {# Messages handled in base.html #}
+
+        {# General form errors (non_field_errors) #}
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+
         <form method="post" novalidate>
             {% csrf_token %}
-            
-            <!-- Nova Senha -->
+
             <div class="form-group">
                 <label for="{{ form.nova_senha.id_for_label }}">{{ form.nova_senha.label }}</label>
                 <div class="password-toggle">
-                    {{ form.nova_senha }}
+                    {{ form.nova_senha }} {# Assumes form-control class #}
                     <button type="button" class="toggle-btn" onclick="togglePassword('{{ form.nova_senha.id_for_label }}')">
                         <i class="bi bi-eye"></i>
                     </button>
@@ -151,12 +156,11 @@
                 <small class="text-danger">{{ form.nova_senha.errors.0 }}</small>
                 {% endif %}
             </div>
-            
-            <!-- Confirmar Nova Senha -->
+
             <div class="form-group">
                 <label for="{{ form.confirmar_senha.id_for_label }}">{{ form.confirmar_senha.label }}</label>
                 <div class="password-toggle">
-                    {{ form.confirmar_senha }}
+                    {{ form.confirmar_senha }} {# Assumes form-control class #}
                     <button type="button" class="toggle-btn" onclick="togglePassword('{{ form.confirmar_senha.id_for_label }}')">
                         <i class="bi bi-eye"></i>
                     </button>
@@ -165,13 +169,12 @@
                 <small class="text-danger">{{ form.confirmar_senha.errors.0 }}</small>
                 {% endif %}
             </div>
-            
-            <!-- Botão de Envio -->
+
             <button type="submit" class="btn-submit">
                 <i class="bi bi-check-circle me-2"></i>Redefinir Senha
             </button>
         </form>
-        
+
         <div class="auth-footer">
             <a href="{% url 'login' %}">Voltar ao login</a>
         </div>
@@ -184,7 +187,9 @@
 function togglePassword(inputId) {
     const input = document.getElementById(inputId);
     const button = input.closest('.password-toggle').querySelector('.toggle-btn');
-    
+
+    if (!input || !button) return;
+
     if (input.type === 'password') {
         input.type = 'text';
         button.innerHTML = '<i class="bi bi-eye-slash"></i>';

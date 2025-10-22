@@ -4,13 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Sistema de Encomendas - Drogaria Benfica{% endblock %}</title>
-    
-    <!-- Bootstrap CSS -->
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    
-    <!-- Select2 CSS -->
+
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 
@@ -70,7 +67,7 @@
             font-weight: bold;
             color: var(--primary-color) !important;
         }
-        
+
         body.dark-mode .navbar-brand {
             color: var(--text-color) !important;
         }
@@ -106,7 +103,7 @@
              background: #333;
              border-bottom: 1px solid var(--border-color);
         }
-        
+
         body.dark-mode .card-body, body.dark-mode .list-group-item {
             color: var(--text-color);
         }
@@ -146,7 +143,7 @@
             border: none;
             border-radius: 8px;
         }
-        
+
         /* Outline Buttons Dark Mode */
         body.dark-mode .btn-outline-primary {
             color: var(--btn-outline-color);
@@ -172,6 +169,24 @@
             background-color: #8cb4ff;
             color: #1a1a1a;
         }
+         body.dark-mode .btn-outline-danger {
+            color: #f89b9b;
+            border-color: #f89b9b;
+        }
+         body.dark-mode .btn-outline-danger:hover {
+            background-color: #f89b9b;
+            color: #1a1a1a;
+        }
+        body.dark-mode .btn-outline-light {
+             color: #ccc;
+             border-color: #ccc;
+        }
+        body.dark-mode .btn-outline-light:hover {
+             color: #1a1a1a;
+             background-color: #ccc;
+             border-color: #ccc;
+        }
+
 
 
         .form-control, .form-select { /* Applied base styles to form-select too */
@@ -219,7 +234,7 @@
         .status-pronta { background-color: #e1f5fe; color: #0288d1; }
         .status-entregue { background-color: #e8f5e8; color: #2e7d32; }
         .status-cancelada { background-color: #ffebee; color: #d32f2f; }
-        
+
         body.dark-mode .status-criada { background-color: rgba(25, 118, 210, 0.2); color: #90caf9; }
         body.dark-mode .status-cotacao { background-color: rgba(245, 124, 0, 0.2); color: #ffcc80; }
         body.dark-mode .status-aprovada { background-color: rgba(56, 142, 60, 0.2); color: #a5d6a7; }
@@ -252,12 +267,13 @@
         .sidebar .nav-link.active {
             background-color: #424242; /* Use a neutral gray for active */
             color: white;
+            font-weight: 500; /* Add weight to active link */
         }
-        
+
         body.dark-mode .navbar-text, body.dark-mode .nav-link {
             color: var(--text-muted-color);
         }
-        
+
         body.dark-mode a.nav-link:hover {
             color: white;
         }
@@ -273,28 +289,36 @@
             border-radius: 12px;
             margin-bottom: 30px;
         }
-        
+
         body.dark-mode .page-header {
             background: #2a2a2a;
             border: 1px solid var(--border-color);
         }
-        
+
         body.dark-mode .page-header h1, body.dark-mode .page-header p {
              color: var(--text-color);
         }
+         body.dark-mode .page-header p.text-muted { /* Ensure muted text is readable here */
+             color: var(--text-muted-color) !important;
+         }
 
         .stats-card {
             background: var(--card-bg);
             border-left: 4px solid var(--primary-color);
         }
-        
+
         /* Override Bootstrap's text colors in dark mode for stats cards */
         body.dark-mode .stats-card .text-primary,
         body.dark-mode .stats-card .text-warning,
         body.dark-mode .stats-card .text-success {
-            color: var(--text-color) !important;
+            color: var(--text-color) !important; /* Make sure these are readable */
         }
-        
+         /* Brighter icons for dark mode stats */
+        body.dark-mode .stats-card .text-primary i { color: #8cb4ff !important; }
+        body.dark-mode .stats-card .text-warning i { color: #ffe082 !important; }
+        body.dark-mode .stats-card .text-success i { color: #a5d6a7 !important; }
+
+
         /* Fix for muted text in all contexts */
         body.dark-mode .text-muted {
             color: var(--text-muted-color) !important;
@@ -304,36 +328,45 @@
             background: var(--card-bg);
             color: var(--text-color);
             border-radius: 12px;
-            overflow: hidden;
+            overflow: hidden; /* Ensures radius applies to table borders */
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color); /* Add border for dark mode */
         }
-        
+
         .table th, .table td {
              border-color: var(--border-color);
+             vertical-align: middle; /* Align content vertically */
         }
 
         .table thead th {
-            background-color: #333333;
-            color: #e0e0e0;
+            background-color: #333333; /* Darker header */
+            color: #e0e0e0; /* Lighter text */
             border-bottom: 2px solid var(--border-color);
             font-weight: 600;
         }
+         /* No border collapse needed if using borders on td/th */
+        /* .table { border-collapse: separate; border-spacing: 0; } */
+
 
         .table tbody tr:hover {
             background-color: var(--table-hover-bg);
         }
-        
+
         .pagination .page-link {
             background-color: var(--card-bg);
             color: var(--link-color);
             border-color: var(--border-color);
         }
-        
+
         .pagination .page-item.active .page-link {
             background-color: #588cbf;
             border-color: #588cbf;
             color: white;
         }
+         body.dark-mode .pagination .page-link:hover {
+             background-color: var(--table-hover-bg);
+         }
+
 
         .formset-row {
             background: var(--table-hover-bg);
@@ -349,15 +382,19 @@
         }
 
         .delete-row {
-            background-color: #ffebee !important;
+            background-color: rgba(220, 53, 69, 0.1) !important; /* Use rgba for dark mode */
             border-color: var(--danger-color) !important;
         }
+         body.dark-mode .delete-row {
+             background-color: rgba(248, 155, 155, 0.1) !important;
+         }
+
 
         .loading {
             opacity: 0.6;
             pointer-events: none;
         }
-        
+
         /* Dark Mode Toggle Styles */
         .theme-toggle {
             cursor: pointer;
@@ -378,16 +415,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px; /* Add padding for smaller screens */
         }
-        
+
         body.dark-mode .auth-wrapper {
              background: #1a1a1a;
         }
-        
+
         /* Dark Mode Styles for Encomenda Detail Page */
         body.dark-mode .action-buttons {
             background-color: var(--card-bg);
-            border-color: var(--border-color);
+            border: 1px solid var(--border-color);
         }
         body.dark-mode .formulario-fisico {
             background-color: var(--card-bg);
@@ -413,8 +451,25 @@
             color: var(--text-color);
         }
          body.dark-mode .formulario-fisico .logo-area h2 {
-            color: var(--primary-color);
+            color: var(--link-color); /* Use link color */
         }
+
+        /* Dark mode alert adjustments */
+         body.dark-mode .alert-success {
+             color: #a5d6a7; background-color: rgba(56, 142, 60, 0.2); border-color: rgba(56, 142, 60, 0.4);
+         }
+         body.dark-mode .alert-danger {
+             color: #ef9a9a; background-color: rgba(211, 47, 47, 0.2); border-color: rgba(211, 47, 47, 0.4);
+         }
+         body.dark-mode .alert-warning {
+             color: #ffe082; background-color: rgba(249, 168, 37, 0.2); border-color: rgba(249, 168, 37, 0.4);
+         }
+         body.dark-mode .alert-info {
+             color: #90caf9; background-color: rgba(25, 118, 210, 0.2); border-color: rgba(25, 118, 210, 0.4);
+         }
+         body.dark-mode .alert-dismissible .btn-close {
+              filter: invert(1) grayscale(100%) brightness(200%); /* Make close button visible */
+         }
 
 
         @media (max-width: 992px) { /* Changed breakpoint to lg */
@@ -428,6 +483,7 @@
                 transition: left 0.3s ease;
                 background: var(--sidebar-bg);
                 box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                 border-right: 1px solid var(--border-color); /* Ensure border shows */
             }
 
             .sidebar.show {
@@ -459,15 +515,14 @@
 </script>
 
     {% if user.is_authenticated %}
-        <!-- ==== AUTHENTICATED USER LAYOUT ==== -->
-        <!-- Navbar -->
-        <nav class="navbar navbar-expand-lg">
+        <nav class="navbar navbar-expand-lg sticky-top"> {# Added sticky-top #}
             <div class="container-fluid">
                 <button class="btn btn-outline-primary d-lg-none me-3" type="button" id="sidebarToggle">
                     <i class="bi bi-list"></i>
                 </button>
 
-                <a class="navbar-brand" href="{% url 'dashboard' %}">
+                {# *** UPDATED NAVBAR BRAND LINK *** #}
+                <a class="navbar-brand" href="{% url 'root_redirect' %}"> {# Changed from 'dashboard' #}
                     <i class="bi bi-clipboard-check me-2"></i>
                     Sistema de Encomendas
                 </a>
@@ -477,12 +532,12 @@
                         <span class="navbar-text me-3 d-none d-sm-inline">
                             Olá, {{ user.nome_completo|default:user.username|truncatechars:15 }}
                         </span>
-                        
+
                         <div id="theme-toggle" class="theme-toggle me-3" title="Alterar tema">
                             <i class="bi bi-moon-fill"></i>
                             <i class="bi bi-sun-fill"></i>
                         </div>
-                        
+
                         <a class="nav-link me-2" href="{% url 'perfil' %}" title="Meu Perfil">
                             <i class="bi bi-person-circle"></i>
                         </a>
@@ -490,8 +545,8 @@
                             <i class="bi bi-people"></i>
                         </a>
                         {% if user.is_staff %}
-                        <a class="nav-link me-2" href="{% url 'admin:index' %}" target="_blank" title="Admin">
-                            <i class="bi bi-gear"></i>
+                        <a class="nav-link me-2" href="{% url 'admin:index' %}" target="_blank" title="Admin Django"> {# Added target blank #}
+                            <i class="bi bi-gear-fill"></i> {# Changed icon slightly #}
                         </a>
                         {% endif %}
                         <form action="{% url 'logout' %}" method="post" class="d-inline" id="logout-form">
@@ -507,18 +562,18 @@
 
         <div class="container-fluid">
             <div class="row">
-                <!-- Sidebar -->
-                <nav class="col-lg-2 sidebar" id="sidebar">
-                    <div class="position-sticky">
+                <nav class="col-lg-2 sidebar d-lg-block" id="sidebar"> {# Added d-lg-block #}
+                    <div class="position-sticky pt-3"> {# Added padding top #}
                         <ul class="nav flex-column">
                             <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
-                                    <i class="bi bi-speedometer2 me-2"></i>
-                                    Dashboard
+                                {# Link to team list, active state might need adjustment based on team dashboard view name #}
+                                <a class="nav-link {% if request.resolver_match.url_name == 'listar_equipes' or 'dashboard_equipe' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'listar_equipes' %}">
+                                    <i class="bi bi-house-door me-2"></i> {# Changed Icon #}
+                                    Início / Equipes
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if 'encomenda' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'encomenda_list' %}">
+                                <a class="nav-link {% if 'encomenda' in request.resolver_match.url_name and 'equipe' not in request.resolver_match.url_name %}active{% endif %}" href="{% url 'encomenda_list' %}">
                                     <i class="bi bi-clipboard-data me-2"></i>
                                     Encomendas
                                 </a>
@@ -545,17 +600,17 @@
                     </div>
                 </nav>
 
-                <!-- Main content -->
                 <main class="col-lg-10 ms-lg-auto main-content">
-                    <!-- Messages -->
                     {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
+                        <div style="position: sticky; top: 70px; z-index: 1050;"> {# Make messages sticky below navbar #}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert"> {# Added shadow #}
+                                    <i class="bi bi-{% if message.tags == 'success' %}check-circle-fill{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle-fill{% elif message.tags == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %} me-2"></i> {# Filled icons #}
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                         </div>
                     {% endif %}
 
                     {% block content %}{% endblock %}
@@ -564,15 +619,15 @@
         </div>
 
     {% else %}
-        <!-- ==== UNAUTHENTICATED USER LAYOUT ==== -->
         <div class="auth-wrapper">
+             {# Messages for Auth pages #}
              {% if messages %}
-                <div style="position: absolute; top: 20px; width: 100%; z-index: 1050; padding: 0 20px;">
+                <div style="position: absolute; top: 20px; width: 100%; max-width: 600px; left: 50%; transform: translateX(-50%); z-index: 1050; padding: 0 20px;">
                  {% for message in messages %}
-                     <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                         <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                     <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert"> {# Map error tag #}
+                         <i class="bi bi-{% if message.tags == 'success' %}check-circle-fill{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle-fill{% elif message.tags == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %} me-2"></i>
                          {{ message }}
-                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                      </div>
                  {% endfor %}
                 </div>
@@ -582,11 +637,8 @@
 
     {% endif %}
 
-    <!-- JQuery (required for Select2) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Select2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
@@ -603,9 +655,18 @@
 
             // Sidebar toggle for mobile
             const sidebarToggle = document.getElementById('sidebarToggle');
-            if (sidebarToggle) {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebarToggle && sidebar) {
                 sidebarToggle.addEventListener('click', function() {
-                    document.getElementById('sidebar')?.classList.toggle('show');
+                    sidebar.classList.toggle('show');
+                });
+                 // Optional: Close sidebar if clicking outside of it on mobile
+                 document.addEventListener('click', function(event) {
+                    if (sidebar.classList.contains('show') &&
+                        !sidebar.contains(event.target) &&
+                        !sidebarToggle.contains(event.target)) {
+                        sidebar.classList.remove('show');
+                    }
                 });
             }
 
@@ -613,37 +674,41 @@
             setTimeout(function() {
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(alert => {
-                    if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
-                        const bsAlertInstance = bootstrap.Alert.getInstance(alert);
-                        if (bsAlertInstance) {
-                            bsAlertInstance.close();
-                        } else {
-                            const newBsAlert = new bootstrap.Alert(alert);
-                            if (newBsAlert) {
-                               newBsAlert.close();
-                            }
-                        }
-                    } else {
-                        alert.style.display = 'none';
+                    const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+                    if (bsAlert) {
+                        bsAlert.close();
                     }
                 });
-            }, 5000);
+            }, 5000); // 5 seconds
 
-            // Form submission feedback
+            // Form submission feedback (disable button)
             const forms = document.querySelectorAll('form');
             forms.forEach(form => {
-                form.addEventListener('submit', function() {
-                    const submitBtn = form.querySelector('button[type="submit"]');
-                    if (submitBtn && !submitBtn.closest('#logout-form')) {
-                        submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processando...';
-                        submitBtn.disabled = true;
+                form.addEventListener('submit', function(e) {
+                    // Exclude logout form and potentially forms with confirmations
+                    if (form.id === 'logout-form' || form.hasAttribute('data-no-disable')) {
+                        return;
                     }
+                    // Find the submit button(s) within this specific form
+                    const submitBtns = form.querySelectorAll('button[type="submit"]');
+                    submitBtns.forEach(submitBtn => {
+                         // Prevent disabling if the form didn't validate (HTML5 validation)
+                         // Note: This doesn't catch server-side validation errors before submission
+                         if (form.checkValidity && !form.checkValidity()) {
+                              return;
+                         }
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
+                        submitBtn.disabled = true;
+                    });
                 });
             });
-        });
+
+             // Initialize Select2 for specific fields if needed
+             // Example: $('.select2-field').select2({ theme: "bootstrap-5" });
+
+        }); // End DOMContentLoaded
     </script>
 
     {% block extra_js %}{% endblock %}
 </body>
 </html>
-

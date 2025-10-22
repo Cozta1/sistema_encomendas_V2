@@ -1,79 +1,82 @@
 {% extends 'encomendas/base.html' %}
 
-{% block title %}Dashboard - Sistema de Encomendas{% endblock %}
+{% block title %}{{ title }} - Sistema de Encomendas{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <h1><i class="bi bi-speedometer2 me-3"></i>Dashboard</h1>
-    <p class="mb-0">Visão geral do sistema de encomendas da Drogaria Benfica</p>
+    {# Display Team Name if available in context #}
+    <h1><i class="bi bi-speedometer2 me-3"></i>Dashboard {% if equipe %}- {{ equipe.nome }}{% endif %}</h1>
+    <p class="mb-0 text-muted">Visão geral {% if equipe %}da equipe{% else %}do sistema{% endif %} de encomendas</p> {# Updated text color class #}
 </div>
 
-<!-- Estatísticas -->
+{# Add dropdown here to switch between teams if user belongs to multiple #}
+
+{% if equipe %} {# Only show stats if within a team context #}
 <div class="row mb-4">
     <div class="col-md-4 mb-3">
         <div class="card stats-card h-100">
             <div class="card-body text-center">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <h3 class="text-primary mb-1">{{ total_encomendas }}</h3>
-                        <p class="text-muted mb-0">Total de Encomendas</p>
-                    </div>
-                    <div class="text-primary">
+                 <div class="d-flex align-items-center justify-content-between">
+                     <div>
+                         <h3 class="text-primary mb-1">{{ total_encomendas }}</h3>
+                         <p class="text-muted mb-0">Total (Equipe)</p>
+                     </div>
+                     <div class="text-primary">
                         <i class="bi bi-clipboard-data" style="font-size: 2.5rem;"></i>
                     </div>
-                </div>
+                 </div>
             </div>
         </div>
     </div>
-    
     <div class="col-md-4 mb-3">
         <div class="card stats-card h-100">
-            <div class="card-body text-center">
-                <div class="d-flex align-items-center justify-content-between">
+             <div class="card-body text-center">
+                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <h3 class="text-warning mb-1">{{ encomendas_pendentes }}</h3>
-                        <p class="text-muted mb-0">Pendentes</p>
+                        <p class="text-muted mb-0">Pendentes (Equipe)</p>
                     </div>
-                    <div class="text-warning">
+                     <div class="text-warning">
                         <i class="bi bi-clock-history" style="font-size: 2.5rem;"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
     <div class="col-md-4 mb-3">
         <div class="card stats-card h-100">
-            <div class="card-body text-center">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
+             <div class="card-body text-center">
+                 <div class="d-flex align-items-center justify-content-between">
+                     <div>
                         <h3 class="text-success mb-1">{{ encomendas_entregues }}</h3>
-                        <p class="text-muted mb-0">Entregues</p>
+                        <p class="text-muted mb-0">Entregues (Equipe)</p>
                     </div>
                     <div class="text-success">
                         <i class="bi bi-check-circle" style="font-size: 2.5rem;"></i>
                     </div>
-                </div>
+                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Ações Rápidas -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Ações Rápidas</h5>
+                <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Ações Rápidas (Equipe: {{ equipe.nome }})</h5>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3 mb-3">
+                        {# Link create to the current team - adjust if URL changes #}
+                        {# If create URL needs team_id: {% url 'encomenda_create' equipe_id=equipe.id %} #}
                         <a href="{% url 'encomenda_create' %}" class="btn btn-primary w-100 py-3">
                             <i class="bi bi-plus-circle me-2"></i>
                             Nova Encomenda
                         </a>
                     </div>
+                    {# Keep global actions if Cliente/Produto/Fornecedor are global #}
                     <div class="col-md-3 mb-3">
                         <a href="{% url 'cliente_create' %}" class="btn btn-success w-100 py-3">
                             <i class="bi bi-person-plus me-2"></i>
@@ -98,13 +101,13 @@
     </div>
 </div>
 
-<!-- Últimas Encomendas -->
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Últimas Encomendas</h5>
-                <a href="{% url 'encomenda_list' %}" class="btn btn-outline-light btn-sm">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Últimas Encomendas (Equipe: {{ equipe.nome }})</h5>
+                {# Link list view potentially filtered by team #}
+                <a href="{% url 'encomenda_list' %}" class="btn btn-outline-light btn-sm"> {# Updated button class #}
                     Ver Todas <i class="bi bi-arrow-right ms-1"></i>
                 </a>
             </div>
@@ -126,7 +129,9 @@
                                 {% for encomenda in ultimas_encomendas %}
                                 <tr>
                                     <td>
-                                        <strong>#{{ encomenda.numero_encomenda }}</strong>
+                                        <a href="{% url 'encomenda_detail' encomenda.pk %}">
+                                            <strong>#{{ encomenda.numero_encomenda }}</strong>
+                                        </a>
                                     </td>
                                     <td>
                                         <div>
@@ -163,8 +168,9 @@
                 {% else %}
                     <div class="text-center py-5">
                         <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
-                        <h5 class="text-muted mt-3">Nenhuma encomenda encontrada</h5>
-                        <p class="text-muted">Comece criando sua primeira encomenda!</p>
+                        <h5 class="text-muted mt-3">Nenhuma encomenda encontrada para esta equipe</h5>
+                        <p class="text-muted">Comece criando a primeira encomenda!</p>
+                        {# Adjust URL if needed: {% url 'encomenda_create' equipe_id=equipe.id %} #}
                         <a href="{% url 'encomenda_create' %}" class="btn btn-primary">
                             <i class="bi bi-plus-circle me-2"></i>Nova Encomenda
                         </a>
@@ -174,4 +180,13 @@
         </div>
     </div>
 </div>
+{% else %} {# Fallback if no specific equipe context was found (shouldn't happen with current view logic) #}
+ <div class="alert alert-info">
+    <i class="bi bi-people me-2"></i>
+    Você não parece estar associado a uma equipe específica no momento. Selecione uma equipe ou entre em contato com o administrador.
+    <br><br>
+     <a href="{% url 'listar_equipes' %}" class="btn btn-primary">Ver Minhas Equipes</a>
+</div>
+{% endif %} {# End if equipe #}
+
 {% endblock %}

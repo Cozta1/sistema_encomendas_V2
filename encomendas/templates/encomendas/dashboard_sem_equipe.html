@@ -1,0 +1,30 @@
+{% extends 'encomendas/base.html' %}
+
+{% block title %}Bem-vindo - Sistema de Encomendas{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-house-door me-3"></i>Bem-vindo!</h1>
+    <p class="mb-0 text-muted">Sistema de Encomendas - Drogaria Benfica</p> {# Updated text color class #}
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                 <i class="bi bi-info-circle display-4 text-primary mb-3"></i>
+                <h5 class="card-title">Você ainda não faz parte de uma equipe</h5>
+                <p class="card-text text-muted">Para começar a gerenciar encomendas, você precisa criar ou ser convidado para uma equipe.</p> {# Updated text color class #}
+                <div class="d-flex justify-content-center gap-2 mt-4">
+                    <a href="{% url 'criar_equipe' %}" class="btn btn-success">
+                        <i class="bi bi-plus-circle me-2"></i>Criar Nova Equipe
+                    </a>
+                    <a href="{% url 'listar_equipes' %}" class="btn btn-info">
+                        <i class="bi bi-people me-2"></i>Ver Convites / Minhas Equipes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

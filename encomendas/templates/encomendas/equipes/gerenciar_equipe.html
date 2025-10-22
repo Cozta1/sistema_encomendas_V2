@@ -4,18 +4,22 @@
 
 {% block content %}
 <div class="page-header">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2"> {# Added flex-wrap and gap #}
         <div>
             <h1><i class="bi bi-gear me-3"></i>{{ title }}</h1>
-            <p class="mb-0">{{ equipe.descricao }}</p>
+            <p class="mb-0 text-muted">{{ equipe.descricao|default:"Gerencie os membros e convites da sua equipe." }}</p> {# Updated text color class #}
         </div>
-        <a href="{% url 'convidar_membro' equipe.id %}" class="btn btn-success">
-            <i class="bi bi-person-plus me-2"></i>Convidar Membro
-        </a>
+        <div class="d-flex gap-2 flex-wrap"> {# Added flex-wrap #}
+             <a href="{% url 'convidar_membro' equipe.id %}" class="btn btn-success">
+                <i class="bi bi-person-plus me-2"></i>Convidar Membro
+            </a>
+            <a href="{% url 'dashboard_equipe' equipe_id=equipe.id %}" class="btn btn-secondary">
+                 <i class="bi bi-speedometer2 me-2"></i>Dashboard da Equipe
+            </a>
+        </div>
     </div>
 </div>
 
-<!-- Membros da Equipe -->
 <div class="card mb-4">
     <div class="card-header">
         <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Membros ({{ membros.count }})</h5>
@@ -23,13 +27,13 @@
     <div class="card-body p-0">
         {% if membros %}
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 align-middle"> {# Added align-middle #}
                 <thead>
                     <tr>
                         <th>Nome</th>
                         <th>Email</th>
-                        <th>Papel</th>
-                        <th>Data de Adesão</th>
+                        <th>Papel Atual</th>
+                        <th>Alterar Papel</th> {# New column #}
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -37,25 +41,62 @@
                     {% for membro in membros %}
                     <tr>
                         <td>
-                            <strong>{{ membro.usuario.nome_completo }}</strong><br>
-                            <small class="text-muted">{{ membro.usuario.cargo }}</small>
+                            <strong>{{ membro.usuario.nome_completo }}</strong>
+                            {% if membro.usuario == equipe.administrador %}
+                                <span class="badge bg-danger ms-1">Admin Principal</span>
+                            {% elif membro.usuario == request.user %}
+                                <span class="badge bg-secondary ms-1">Você</span>
+                            {% endif %}
+                            <br>
+                            <small class="text-muted">{{ membro.usuario.cargo|default:"" }}</small>
                         </td>
                         <td>{{ membro.usuario.email }}</td>
                         <td>
-                            <span class="badge bg-{% if membro.papel == 'administrador' %}danger{% elif membro.papel == 'gerente' %}warning{% else %}info{% endif %}">
+                            {# Display current role clearly #}
+                            <span class="badge bg-{% if membro.papel == 'administrador' %}danger{% elif membro.papel == 'gerente' %}warning{% else %}info{% endif %} text-dark"> {# Added text-dark for warning/info #}
                                 {{ membro.get_papel_display }}
                             </span>
                         </td>
-                        <td>{{ membro.data_adesao|date:"d/m/Y" }}</td>
                         <td>
-                            {% if membro.usuario != request.user %}
-                            <a href="{% url 'remover_membro' equipe.id membro.usuario.id %}" 
-                               class="btn btn-sm btn-danger"
-                               onclick="return confirm('Tem certeza que deseja remover este membro?')">
-                                <i class="bi bi-trash"></i>
-                            </a>
+                            {# Form to change role #}
+                            {% if request.user != membro.usuario and membro.usuario != equipe.administrador %}
+                                {% comment %}
+                                Permission Check:
+                                Show form only if current user can manage AND target is not main admin.
+                                View handles finer-grained logic (e.g., manager cannot promote to admin).
+                                {% endcomment %}
+                                <form action="{% url 'alterar_papel_membro' equipe.id membro.usuario.id %}" method="post" class="d-inline-flex align-items-center gap-1">
+                                    {% csrf_token %}
+                                    <select name="papel" class="form-select form-select-sm" style="min-width: 120px;" aria-label="Alterar papel para {{ membro.usuario.nome_completo }}">
+                                        {% for code, name in PAPEIS_MEMBRO %}
+                                            {# Prevent non-admins from seeing/selecting 'administrador' option #}
+                                            {% if code != 'administrador' or equipe.administrador == request.user %}
+                                                 <option value="{{ code }}" {% if code == membro.papel %}selected{% endif %}>{{ name }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Salvar Papel">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                            {% elif membro.usuario == equipe.administrador %}
+                                <span class="text-muted fst-italic">Admin Principal</span>
                             {% else %}
-                            <span class="text-muted">(você)</span>
+                                 <span class="text-muted fst-italic">-</span> {# Cannot change own role here #}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {# Remove/Kick Button #}
+                            {% if request.user != membro.usuario and membro.usuario != equipe.administrador %}
+                                {% comment %}
+                                View handles permission logic (e.g., manager cannot remove manager).
+                                {% endcomment %}
+                                <a href="{% url 'remover_membro' equipe.id membro.usuario.id %}"
+                                   class="btn btn-sm btn-outline-danger" title="Remover Membro">
+                                    <i class="bi bi-person-x"></i>
+                                </a>
+                            {% else %}
+                                <span class="text-muted">-</span> {# Cannot remove self or main admin #}
                             {% endif %}
                         </td>
                     </tr>
@@ -64,14 +105,13 @@
             </table>
         </div>
         {% else %}
-        <div class="alert alert-info mb-0">
-            Nenhum membro na equipe ainda.
+        <div class="text-center p-3"> {# Changed from alert for better spacing #}
+            <p class="mb-0 text-muted">Apenas o administrador principal está na equipe no momento.</p>
         </div>
         {% endif %}
     </div>
 </div>
 
-<!-- Convites Pendentes -->
 {% if convites %}
 <div class="card">
     <div class="card-header">
@@ -79,14 +119,15 @@
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 align-middle"> {# Added align-middle #}
                 <thead>
                     <tr>
                         <th>Email</th>
-                        <th>Papel</th>
+                        <th>Papel Convidado</th>
+                        <th>Convidado por</th>
                         <th>Enviado em</th>
                         <th>Expira em</th>
-                        <th>Ações</th>
+                        <th>Ações</th> {# Consider adding 'Resend' or 'Cancel' invite actions #}
                     </tr>
                 </thead>
                 <tbody>
@@ -94,22 +135,22 @@
                     <tr>
                         <td>{{ convite.email }}</td>
                         <td>
-                            <span class="badge bg-{% if convite.papel == 'gerente' %}warning{% else %}info{% endif %}">
+                            <span class="badge bg-{% if convite.papel == 'gerente' %}warning{% elif convite.papel == 'administrador' %}danger{% else %}info{% endif %} text-dark"> {# Added text-dark #}
                                 {{ convite.get_papel_display }}
                             </span>
                         </td>
+                        <td>{{ convite.criado_por.nome_completo|default:'-' }}</td>
                         <td>{{ convite.data_criacao|date:"d/m/Y H:i" }}</td>
                         <td>
                             {% if convite.eh_valido %}
-                            <span class="text-success">{{ convite.data_expiracao|date:"d/m/Y" }}</span>
+                            <span class="text-success">{{ convite.data_expiracao|date:"d/m/Y H:i" }}</span>
                             {% else %}
-                            <span class="text-danger">Expirado</span>
+                            <span class="text-danger">Expirado em {{ convite.data_expiracao|date:"d/m/Y H:i" }}</span>
                             {% endif %}
                         </td>
                         <td>
-                            <button class="btn btn-sm btn-secondary" disabled>
-                                <i class="bi bi-clock"></i> Aguardando
-                            </button>
+                             {# Add cancel button later if needed, requires another view/URL #}
+                             <span class="text-muted fst-italic">Pendente</span>
                         </td>
                     </tr>
                     {% endfor %}
@@ -122,8 +163,7 @@
 
 <div class="mt-4">
     <a href="{% url 'listar_equipes' %}" class="btn btn-secondary">
-        <i class="bi bi-arrow-left me-2"></i>Voltar
+        <i class="bi bi-arrow-left me-2"></i>Voltar para Lista de Equipes
     </a>
 </div>
 {% endblock %}
-

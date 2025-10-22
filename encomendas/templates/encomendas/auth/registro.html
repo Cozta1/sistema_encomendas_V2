@@ -4,77 +4,69 @@
 
 {% block extra_css %}
 <style>
-    /* body style removed, now handled by .auth-wrapper in base.html */
-    
+    /* Styles are now inside .auth-wrapper provided by base.html */
     .auth-container {
         width: 100%;
-        max-width: 500px;
+        max-width: 500px; /* Increased width slightly for registration form */
         padding: 20px;
     }
-    
+
     .auth-card {
-        background: white;
+        background: var(--card-bg); /* Use CSS variable */
+        color: var(--text-color); /* Use CSS variable */
         border-radius: 12px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         padding: 40px;
+        border: 1px solid var(--border-color); /* Add border for dark mode */
     }
-    
+
     .auth-header {
         text-align: center;
         margin-bottom: 30px;
     }
-    
+
     .auth-header h1 {
         font-size: 28px;
-        color: #333;
+        color: var(--text-color); /* Use CSS variable */
         margin-bottom: 10px;
     }
-    
+
     .auth-header p {
-        color: #666;
+        color: var(--text-muted-color); /* Use CSS variable */
         font-size: 14px;
     }
-    
+
     .form-group {
         margin-bottom: 20px;
     }
-    
+
     .form-group label {
         display: block;
         margin-bottom: 8px;
-        color: #333;
+        color: var(--text-color); /* Use CSS variable */
         font-weight: 500;
         font-size: 14px;
     }
-    
-    .form-group input,
-    .form-group textarea {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 14px;
-        transition: border-color 0.3s;
-    }
-    
-    .form-group input:focus,
-    .form-group textarea:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-    
-    .form-group small {
+
+    /* Input styles are inherited from base.html .form-control */
+     .form-group small { /* Style help text and errors */
         display: block;
         margin-top: 6px;
-        color: #999;
+        color: var(--text-muted-color); /* Use CSS variable */
         font-size: 12px;
     }
-    
+     body.dark-mode .form-group small.text-danger { /* Style specific errors */
+        color: #f89b9b; /* Lighter red for dark mode */
+     }
+     body:not(.dark-mode) .form-group small.text-danger { /* Style specific errors */
+        color: var(--danger-color);
+     }
+
+
     .password-toggle {
         position: relative;
     }
-    
+
     .password-toggle .toggle-btn {
         position: absolute;
         right: 12px;
@@ -83,18 +75,19 @@
         background: none;
         border: none;
         cursor: pointer;
-        color: #667eea;
+        color: var(--link-color); /* Use CSS variable */
         font-size: 18px;
     }
-    
-    .password-toggle input {
+
+    .password-toggle input.form-control {
         padding-right: 40px;
     }
-    
+
     .btn-register {
         width: 100%;
         padding: 12px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* Keep gradient for visual appeal */
+        background: linear-gradient(135deg, #588cbf 0%, #4a6fa5 100%);
         color: white;
         border: none;
         border-radius: 6px;
@@ -103,45 +96,36 @@
         cursor: pointer;
         transition: transform 0.2s, box-shadow 0.2s;
     }
-    
+
     .btn-register:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 5px 20px rgba(88, 140, 191, 0.4);
     }
-    
+
     .auth-footer {
         text-align: center;
         margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color); /* Use CSS variable */
     }
-    
+
+     .auth-footer p {
+        color: var(--text-muted-color); /* Use CSS variable */
+        font-size: 14px;
+    }
+
     .auth-footer a {
-        color: #667eea;
+        color: var(--link-color); /* Use CSS variable */
         text-decoration: none;
         font-weight: 500;
     }
-    
+
     .auth-footer a:hover {
         text-decoration: underline;
     }
-    
-    .error-message {
-        background: #f8d7da;
-        color: #721c24;
-        padding: 12px;
-        border-radius: 6px;
-        margin-bottom: 20px;
-        border-left: 4px solid #f5c6cb;
-    }
-    
-    .error-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    
-    .error-list li {
-        padding: 4px 0;
-    }
+
+    /* Remove error-message and error-list styles if relying on Django's default rendering */
+
 </style>
 {% endblock %}
 
@@ -152,20 +136,27 @@
             <h1>Criar Conta</h1>
             <p>Junte-se ao Sistema de Encomendas</p>
         </div>
-        
+
+        {# General form errors (non_field_errors) - styled using standard alert #}
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <form method="post" novalidate>
             {% csrf_token %}
-            
-            <!-- Nome Completo -->
+
             <div class="form-group">
                 <label for="{{ form.nome_completo.id_for_label }}">{{ form.nome_completo.label }}</label>
-                {{ form.nome_completo }}
+                {{ form.nome_completo }} {# Assumes form renders with form-control #}
                 {% if form.nome_completo.errors %}
                 <small class="text-danger">{{ form.nome_completo.errors.0 }}</small>
                 {% endif %}
             </div>
-            
-            <!-- Email -->
+
             <div class="form-group">
                 <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
                 {{ form.email }}
@@ -173,8 +164,7 @@
                 <small class="text-danger">{{ form.email.errors.0 }}</small>
                 {% endif %}
             </div>
-            
-            <!-- Identificação -->
+
             <div class="form-group">
                 <label for="{{ form.identificacao.id_for_label }}">{{ form.identificacao.label }}</label>
                 {{ form.identificacao }}
@@ -182,8 +172,7 @@
                 <small class="text-danger">{{ form.identificacao.errors.0 }}</small>
                 {% endif %}
             </div>
-            
-            <!-- Cargo -->
+
             <div class="form-group">
                 <label for="{{ form.cargo.id_for_label }}">{{ form.cargo.label }}</label>
                 {{ form.cargo }}
@@ -191,8 +180,7 @@
                 <small class="text-danger">{{ form.cargo.errors.0 }}</small>
                 {% endif %}
             </div>
-            
-            <!-- Telefone -->
+
             <div class="form-group">
                 <label for="{{ form.telefone.id_for_label }}">{{ form.telefone.label }}</label>
                 {{ form.telefone }}
@@ -200,8 +188,7 @@
                 <small class="text-danger">{{ form.telefone.errors.0 }}</small>
                 {% endif %}
             </div>
-            
-            <!-- Senha -->
+
             <div class="form-group">
                 <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
                 <div class="password-toggle">
@@ -215,8 +202,7 @@
                 <small class="text-danger">{{ form.password1.errors.0 }}</small>
                 {% endif %}
             </div>
-            
-            <!-- Confirmar Senha -->
+
             <div class="form-group">
                 <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
                 <div class="password-toggle">
@@ -229,13 +215,12 @@
                 <small class="text-danger">{{ form.password2.errors.0 }}</small>
                 {% endif %}
             </div>
-            
-            <!-- Botão de Registro -->
+
             <button type="submit" class="btn-register">
                 <i class="bi bi-person-plus me-2"></i>Criar Conta
             </button>
         </form>
-        
+
         <div class="auth-footer">
             <p>Já tem conta? <a href="{% url 'login' %}">Faça login aqui</a></p>
         </div>
@@ -248,7 +233,9 @@
 function togglePassword(inputId) {
     const input = document.getElementById(inputId);
     const button = input.closest('.password-toggle').querySelector('.toggle-btn');
-    
+
+    if (!input || !button) return;
+
     if (input.type === 'password') {
         input.type = 'text';
         button.innerHTML = '<i class="bi bi-eye-slash"></i>';

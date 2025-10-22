@@ -5,29 +5,31 @@
 {% block content %}
 
 <div class="page-header">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2"> {# Added flex-wrap/gap #}
         <div>
             <h1><i class="bi bi-people me-3"></i>Minhas Equipes</h1>
-            <p class="mb-0">Gerencie suas equipes e colaboradores</p>
+            <p class="mb-0 text-muted">Gerencie suas equipes e colaboradores</p> {# Updated text color class #}
         </div>
-        <a href="{% url 'criar_equipe' %}" class="btn btn-primary">
+        <a href="{% url 'criar_equipe' %}" class="btn btn-success"> {# Changed to success #}
             <i class="bi bi-plus-circle me-2"></i>Nova Equipe
         </a>
     </div>
 </div>
 
+{# --- Convites Pendentes Section --- #}
 {% if convites_pendentes %}
 <div class="card mb-4 border-warning">
     <div class="card-header bg-warning text-dark">
-        <h5 class="mb-0"><i class="bi bi-envelope-exclamation me-2"></i>Convites Pendentes ({{ convites_pendentes.count }})</h5>
+        <h5 class="mb-0"><i class="bi bi-envelope-exclamation me-2"></i>Convites Pendentes ({{ convites_pendentes|length }})</h5> {# Use length filter #}
     </div>
     <div class="card-body">
         {% for convite in convites_pendentes %}
-        <div class="d-flex justify-content-between align-items-center p-2 {% if not forloop.last %}border-bottom{% endif %}">
+        <div class="d-flex justify-content-between align-items-center p-2 flex-wrap gap-2 {% if not forloop.last %}border-bottom{% endif %}"> {# Added flex-wrap/gap #}
             <div>
-                Você foi convidado por <strong>{{ convite.criado_por.nome_completo }}</strong> para se juntar à equipe <strong>"{{ convite.equipe.nome }}"</strong>.
+                Você foi convidado por <strong>{{ convite.criado_por.nome_completo|default:'Usuário excluído' }}</strong> para se juntar à equipe <strong>"{{ convite.equipe.nome }}"</strong> como <strong>{{ convite.get_papel_display }}</strong>.
+                <small class="d-block text-muted">Expira em: {{ convite.data_expiracao|date:"d/m/Y H:i" }}</small>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 flex-shrink-0"> {# Added flex-shrink-0 #}
                 <form action="{% url 'aceitar_convite' convite.id %}" method="post" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-sm btn-success">
@@ -47,73 +49,73 @@
 </div>
 {% endif %}
 
-
-{% if equipes %}
+{# --- Equipes que você é membro (includes teams you administer) --- #}
 <div class="card mb-4">
     <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Equipes ({{ equipes.count }})</h5>
+        <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Equipes que Participo ({% if equipes %}{{ equipes|length }}{% else %}0{% endif %})</h5> {# Use length filter #}
     </div>
     <div class="card-body">
-        <div class="row">
-            {% for equipe in equipes %}
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body">
-                        <h6 class="card-title">{{ equipe.nome }}</h6>
-                        <p class="card-text text-muted small">{{ equipe.descricao|truncatewords:15 }}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">
-                                <i class="bi bi-people me-1"></i>{{ equipe.membros.count }} membros
-                            </small>
-                            <a href="{% url 'dashboard_equipe' equipe.id %}" class="btn btn-sm btn-primary">
-                                Acessar
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-{% endif %}
+        {% if not equipes %}
+             <p class="text-muted text-center my-3">Você ainda não participa de nenhuma equipe.</p>
+        {% else %}
+            <div class="row">
+                {% for equipe in equipes %} {# This list now contains 'meu_papel' attribute #}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100 border-0 shadow-sm {% if equipe.administrador == request.user %}border border-primary{% endif %}"> {# Highlight teams you administer #}
+                        <div class="card-body d-flex flex-column"> {# Flex column for button alignment #}
+                             <div class="flex-grow-1">
+                                 <h6 class="card-title">
+                                     {{ equipe.nome }}
+                                     {% if equipe.administrador == request.user %}
+                                         <span class="badge bg-primary ms-1" title="Administrador Principal"><i class="bi bi-shield-check"></i></span>
+                                     {% elif equipe.meu_papel == 'gerente' %}
+                                          <span class="badge bg-warning text-dark ms-1" title="Gerente"><i class="bi bi-person-gear"></i></span>
+                                     {% endif %}
+                                 </h6>
+                                <p class="card-text text-muted small">{{ equipe.descricao|truncatewords:15|default:"Sem descrição." }}</p>
+                             </div>
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top"> {# Use mt-auto removed, added mt-3 pt-2 border-top #}
+                                <small class="text-muted">
+                                    <i class="bi bi-people me-1"></i>{{ equipe.membros.count }} membro{{ equipe.membros.count|pluralize }}
+                                </small>
+                                <div class="d-flex gap-1"> {# Group buttons #}
+                                    <a href="{% url 'dashboard_equipe' equipe.id %}" class="btn btn-sm btn-primary" title="Acessar Dashboard">
+                                        <i class="bi bi-speedometer2"></i>
+                                    </a>
+                                    {# Show manage button if user can manage THIS team #}
+                                    {% if equipe.administrador == request.user or equipe.meu_papel == 'gerente' %}
+                                    <a href="{% url 'gerenciar_equipe' equipe.id %}" class="btn btn-sm btn-warning" title="Gerenciar Equipe">
+                                        <i class="bi bi-gear"></i>
+                                    </a>
+                                    {% endif %}
 
-{% if equipes_administradas %}
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Equipes Administradas ({{ equipes_administradas.count }})</h5>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            {% for equipe in equipes_administradas %}
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card h-100 border-0 shadow-sm border-primary">
-                    <div class="card-body">
-                        <h6 class="card-title">{{ equipe.nome }}</h6>
-                        <p class="card-text text-muted small">{{ equipe.descricao|truncatewords:15 }}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">
-                                <i class="bi bi-people me-1"></i>{{ equipe.membros.count }} membros
-                            </small>
-                            <div>
-                                <a href="{% url 'gerenciar_equipe' equipe.id %}" class="btn btn-sm btn-warning">
-                                    Gerenciar
-                                </a>
+                                    {# --- Add Leave Button --- #}
+                                    {% if equipe.administrador != request.user %} {# Cannot leave if you are the main admin #}
+                                        <form action="{% url 'sair_equipe' equipe.id %}" method="post" onsubmit="return confirm('Tem certeza que deseja sair da equipe {{ equipe.nome }}?');" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Sair da Equipe">
+                                                <i class="bi bi-box-arrow-left"></i>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
+         {% endif %} {# end if not equipes #}
     </div>
 </div>
-{% endif %}
 
-{% if not equipes and not equipes_administradas and not convites_pendentes %}
+{# Removed redundant 'Equipes Administradas' section #}
+
+{# --- No Teams Message --- #}
+{% if not equipes and not convites_pendentes %}
 <div class="alert alert-info">
     <i class="bi bi-info-circle me-2"></i>
-    Você não faz parte de nenhuma equipe. <a href="{% url 'criar_equipe' %}">Crie uma nova equipe</a> ou aguarde por um convite.
+    Você não faz parte de nenhuma equipe e não há convites pendentes. <a href="{% url 'criar_equipe' %}">Crie uma nova equipe</a> para começar.
 </div>
 {% endif %}
 {% endblock %}
