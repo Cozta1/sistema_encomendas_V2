@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import pymysql # Ensure pymysql is imported if using MySQL
+
+# Activate MySQL driver
+pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +24,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-u+=oong8ajl(w-6f8&=-f+bw_jkd^u^0fs!7a)@kk&nx&vo&^8'
+SECRET_KEY = 'django-insecure-u+=oong8ajl(w-6f8&=-f+bw_jkd^u^0fs!7a)@kk&nx&vo&^8' # Replace with your actual key
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [] # Add '127.0.0.1', 'localhost' for development if needed
 
 
 # Application definition
@@ -37,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'encomendas',
+    'encomendas', # Your app
 ]
 
 MIDDLEWARE = [
@@ -55,7 +59,7 @@ ROOT_URLCONF = 'sistema_encomendas.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [], # Add global template directories if you have any
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -73,46 +77,18 @@ WSGI_APPLICATION = 'sistema_encomendas.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-# DATABASES = {
-
-#     'default': {
-
-#         'ENGINE': 'django.db.backends.postgresql',
-
-#         'NAME': 'sistema_encomendas',
-
-#         'USER': 'postgres',
-
-#         'PASSWORD': 'root',
-
-#         'HOST': 'localhost',
-
-#         'PORT': '5432',
-        
-#         'client_encoding': 'UTF8',
-
-#     }
-
-# }
-
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'sistema_encomendas',
-        'USER': 'root',  # Or your specific MySQL user
-        'PASSWORD': 'root',  # Your MySQL password
-        'HOST': 'localhost',
+        'USER': 'root',  # Replace with your MySQL user if different
+        'PASSWORD': 'root',  # Replace with your MySQL password
+        'HOST': 'localhost', # Or the IP address of your DB server
         'PORT': '3306',  # Default MySQL port
         'OPTIONS': {
             'charset': 'utf8mb4',
+            # Ensure MySQL uses transactions correctly
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
     }
 }
@@ -146,13 +122,17 @@ TIME_ZONE = 'America/Sao_Paulo'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = True # Important for timezone-aware datetimes
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+# Add STATIC_ROOT for collectstatic in production
+# STATIC_ROOT = BASE_DIR / 'staticfiles'
+# Add STATICFILES_DIRS if you have static files outside app directories
+# STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -160,24 +140,42 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-
-# Modelo de usuário customizado
+# Custom User Model
 AUTH_USER_MODEL = 'encomendas.Usuario'
 
-# Configurações de login
+# Authentication URLs
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_REDIRECT_URL = 'root_redirect' # <<<--- CORRECTED VALUE
 LOGOUT_REDIRECT_URL = 'login'
 
-# Configurações de email (para reset de senha)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Para desenvolvimento
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Para produção
-EMAIL_HOST = 'seu-servidor-smtp.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'seu-email@exemplo.com'
-EMAIL_HOST_PASSWORD = 'sua-senha'
-DEFAULT_FROM_EMAIL = 'seu-email@exemplo.com'
+# Email Settings (for password reset, etc.)
+# Use console backend for development to see emails in the terminal
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Use SMTP backend for production (replace with your actual provider details)
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.example.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'your-email@example.com'
+# EMAIL_HOST_PASSWORD = 'your-email-password-or-app-password'
+# DEFAULT_FROM_EMAIL = 'webmaster@example.com' # Email shown as sender
 
-# URL do site para links de reset de senha
-SITE_URL = 'http://localhost:8000'  # Mudar para URL de produção
+# Base URL for constructing absolute URLs in emails (password reset links)
+# Replace with your actual domain in production
+SITE_URL = 'http://127.0.0.1:8000'
+
+# Session Settings (optional, example for longer session)
+# SESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # 2 weeks in seconds
+
+# Message Framework Tags (optional, aligns with Bootstrap alert classes)
+from django.contrib.messages import constants as messages
+MESSAGE_TAGS = {
+    messages.DEBUG: 'secondary',
+    messages.INFO: 'info',
+    messages.SUCCESS: 'success',
+    messages.WARNING: 'warning',
+    messages.ERROR: 'danger',
+}
+
+# Invitation expiration days (optional custom setting)
+CONVITE_EXPIRACAO_DIAS = 7

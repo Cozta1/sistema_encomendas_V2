@@ -269,6 +269,17 @@
             color: white;
             font-weight: 500; /* Add weight to active link */
         }
+        /* Style for disabled sidebar links */
+        .sidebar .nav-link.disabled {
+            color: #6c757d; /* Muted color */
+            pointer-events: none; /* Disable click */
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        body.dark-mode .sidebar .nav-link.disabled {
+            color: #555; /* Darker muted color */
+        }
+
 
         body.dark-mode .navbar-text, body.dark-mode .nav-link {
             color: var(--text-muted-color);
@@ -511,33 +522,38 @@
         if (theme === 'light') {
             document.body.classList.remove('dark-mode');
         }
+        // Store current team ID from context if available
+        const currentTeamIdFromContext = "{{ equipe.id|default:'' }}";
+        if (currentTeamIdFromContext) {
+            sessionStorage.setItem('currentTeamId', currentTeamIdFromContext);
+        }
     })();
 </script>
 
     {% if user.is_authenticated %}
-        <nav class="navbar navbar-expand-lg sticky-top"> {# Added sticky-top #}
+        <nav class="navbar navbar-expand-lg sticky-top">
             <div class="container-fluid">
                 <button class="btn btn-outline-primary d-lg-none me-3" type="button" id="sidebarToggle">
                     <i class="bi bi-list"></i>
                 </button>
-
-                {# *** UPDATED NAVBAR BRAND LINK *** #}
-                <a class="navbar-brand" href="{% url 'root_redirect' %}"> {# Changed from 'dashboard' #}
+                <a class="navbar-brand" href="{% url 'root_redirect' %}">
                     <i class="bi bi-clipboard-check me-2"></i>
                     Sistema de Encomendas
                 </a>
-
+                {% if equipe %} {# Display Current Team if in context #}
+                <span class="navbar-text ms-3 d-none d-lg-inline">
+                    <i class="bi bi-people me-1"></i> Equipe: {{ equipe.nome }}
+                </span>
+                {% endif %}
                 <div class="navbar-nav ms-auto d-flex flex-row align-items-center">
                     {% if user.is_authenticated %}
                         <span class="navbar-text me-3 d-none d-sm-inline">
                             Olá, {{ user.nome_completo|default:user.username|truncatechars:15 }}
                         </span>
-
                         <div id="theme-toggle" class="theme-toggle me-3" title="Alterar tema">
                             <i class="bi bi-moon-fill"></i>
                             <i class="bi bi-sun-fill"></i>
                         </div>
-
                         <a class="nav-link me-2" href="{% url 'perfil' %}" title="Meu Perfil">
                             <i class="bi bi-person-circle"></i>
                         </a>
@@ -545,8 +561,8 @@
                             <i class="bi bi-people"></i>
                         </a>
                         {% if user.is_staff %}
-                        <a class="nav-link me-2" href="{% url 'admin:index' %}" target="_blank" title="Admin Django"> {# Added target blank #}
-                            <i class="bi bi-gear-fill"></i> {# Changed icon slightly #}
+                        <a class="nav-link me-2" href="{% url 'admin:index' %}" target="_blank" title="Admin Django">
+                            <i class="bi bi-gear-fill"></i>
                         </a>
                         {% endif %}
                         <form action="{% url 'logout' %}" method="post" class="d-inline" id="logout-form">
@@ -562,57 +578,83 @@
 
         <div class="container-fluid">
             <div class="row">
-                <nav class="col-lg-2 sidebar d-lg-block" id="sidebar"> {# Added d-lg-block #}
-                    <div class="position-sticky pt-3"> {# Added padding top #}
+                <nav class="col-lg-2 sidebar d-lg-block" id="sidebar">
+                    <div class="position-sticky pt-3">
                         <ul class="nav flex-column">
                             <li class="nav-item">
-                                {# Link to team list, active state might need adjustment based on team dashboard view name #}
                                 <a class="nav-link {% if request.resolver_match.url_name == 'listar_equipes' or 'dashboard_equipe' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'listar_equipes' %}">
-                                    <i class="bi bi-house-door me-2"></i> {# Changed Icon #}
+                                    <i class="bi bi-house-door me-2"></i>
                                     Início / Equipes
                                 </a>
                             </li>
+                            {# --- UPDATED SIDEBAR LINKS using Django's {% url %} tag --- #}
+                            {# Encomendas link - General link, view handles filtering #}
                             <li class="nav-item">
-                                <a class="nav-link {% if 'encomenda' in request.resolver_match.url_name and 'equipe' not in request.resolver_match.url_name %}active{% endif %}" href="{% url 'encomenda_list' %}">
+                                <a class="nav-link {% if 'encomenda_list' in request.resolver_match.url_name %}active{% endif %}"
+                                   href="{% url 'encomenda_list' %}">
                                     <i class="bi bi-clipboard-data me-2"></i>
                                     Encomendas
+                                    {# Optionally show current team filter if applied #}
+                                    {% if current_equipe %}
+                                    <span class="badge bg-secondary ms-1">{{ current_equipe.nome|truncatechars:8 }}</span>
+                                    {% elif request.resolver_match.view_name == 'encomendas.views.encomenda_list' and not request.GET.equipe %}
+                                    <span class="badge bg-info ms-1" title="Mostrando todas as suas equipes">Todas</span>
+                                    {% endif %}
                                 </a>
                             </li>
+                            {# Clientes link - Links to team-specific list if equipe context exists #}
                             <li class="nav-item">
-                                <a class="nav-link {% if 'cliente' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'cliente_list' %}">
+                                <a class="nav-link {% if 'cliente_list' in request.resolver_match.url_name %}active{% endif %} {% if not equipe %}disabled{% endif %}"
+                                   href="{% if equipe %}{% url 'cliente_list' equipe_id=equipe.id %}{% else %}#{% endif %}"
+                                   {% if not equipe %}title="Selecione uma equipe para ver os clientes"{% endif %}>
                                     <i class="bi bi-people me-2"></i>
                                     Clientes
+                                    {% if equipe %}
+                                    <span class="badge bg-secondary ms-1">{{ equipe.nome|truncatechars:8 }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if 'produto' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produto_list' %}">
-                                    <i class="bi bi-box me-2"></i>
-                                    Produtos
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if 'fornecedor' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fornecedor_list' %}">
-                                    <i class="bi bi-truck me-2"></i>
-                                    Fornecedores
-                                </a>
-                            </li>
+                            {# Produtos link #}
+                             <li class="nav-item">
+                                <a class="nav-link {% if 'produto_list' in request.resolver_match.url_name %}active{% endif %} {% if not equipe %}disabled{% endif %}"
+                                   href="{% if equipe %}{% url 'produto_list' equipe_id=equipe.id %}{% else %}#{% endif %}"
+                                   {% if not equipe %}title="Selecione uma equipe para ver os produtos"{% endif %}>
+                                     <i class="bi bi-box me-2"></i>
+                                     Produtos
+                                     {% if equipe %}
+                                     <span class="badge bg-secondary ms-1">{{ equipe.nome|truncatechars:8 }}</span>
+                                     {% endif %}
+                                 </a>
+                             </li>
+                            {# Fornecedores link #}
+                             <li class="nav-item">
+                                 <a class="nav-link {% if 'fornecedor_list' in request.resolver_match.url_name %}active{% endif %} {% if not equipe %}disabled{% endif %}"
+                                    href="{% if equipe %}{% url 'fornecedor_list' equipe_id=equipe.id %}{% else %}#{% endif %}"
+                                    {% if not equipe %}title="Selecione uma equipe para ver os fornecedores"{% endif %}>
+                                     <i class="bi bi-truck me-2"></i>
+                                     Fornecedores
+                                     {% if equipe %}
+                                     <span class="badge bg-secondary ms-1">{{ equipe.nome|truncatechars:8 }}</span>
+                                     {% endif %}
+                                 </a>
+                             </li>
+                             {# --- END UPDATED SIDEBAR LINKS --- #}
                         </ul>
                     </div>
                 </nav>
 
                 <main class="col-lg-10 ms-lg-auto main-content">
                     {% if messages %}
-                        <div style="position: sticky; top: 70px; z-index: 1050;"> {# Make messages sticky below navbar #}
+                        <div style="position: sticky; top: 70px; z-index: 1050;">
                             {% for message in messages %}
-                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert"> {# Added shadow #}
-                                    <i class="bi bi-{% if message.tags == 'success' %}check-circle-fill{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle-fill{% elif message.tags == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %} me-2"></i> {# Filled icons #}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                                    <i class="bi bi-{% if message.tags == 'success' %}check-circle-fill{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle-fill{% elif message.tags == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %} me-2"></i>
                                     {{ message }}
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             {% endfor %}
                          </div>
                     {% endif %}
-
                     {% block content %}{% endblock %}
                 </main>
             </div>
@@ -624,7 +666,7 @@
              {% if messages %}
                 <div style="position: absolute; top: 20px; width: 100%; max-width: 600px; left: 50%; transform: translateX(-50%); z-index: 1050; padding: 0 20px;">
                  {% for message in messages %}
-                     <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert"> {# Map error tag #}
+                     <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
                          <i class="bi bi-{% if message.tags == 'success' %}check-circle-fill{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle-fill{% elif message.tags == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %} me-2"></i>
                          {{ message }}
                          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -634,7 +676,6 @@
              {% endif %}
              {% block auth_content %}{% endblock %}
         </div>
-
     {% endif %}
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -660,7 +701,6 @@
                 sidebarToggle.addEventListener('click', function() {
                     sidebar.classList.toggle('show');
                 });
-                 // Optional: Close sidebar if clicking outside of it on mobile
                  document.addEventListener('click', function(event) {
                     if (sidebar.classList.contains('show') &&
                         !sidebar.contains(event.target) &&
@@ -669,6 +709,8 @@
                     }
                 });
             }
+
+            // --- REMOVED JAVASCRIPT BLOCK FOR SIDEBAR URLS ---
 
             // Auto-hide alerts after 5 seconds
             setTimeout(function() {
@@ -679,31 +721,27 @@
                         bsAlert.close();
                     }
                 });
-            }, 5000); // 5 seconds
+            }, 5000);
 
-            // Form submission feedback (disable button)
+            // Form submission feedback
             const forms = document.querySelectorAll('form');
             forms.forEach(form => {
                 form.addEventListener('submit', function(e) {
-                    // Exclude logout form and potentially forms with confirmations
                     if (form.id === 'logout-form' || form.hasAttribute('data-no-disable')) {
                         return;
                     }
-                    // Find the submit button(s) within this specific form
                     const submitBtns = form.querySelectorAll('button[type="submit"]');
                     submitBtns.forEach(submitBtn => {
-                         // Prevent disabling if the form didn't validate (HTML5 validation)
-                         // Note: This doesn't catch server-side validation errors before submission
                          if (form.checkValidity && !form.checkValidity()) {
                               return;
                          }
-                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
                         submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
                     });
                 });
             });
 
-             // Initialize Select2 for specific fields if needed
+             // Initialize Select2 if needed
              // Example: $('.select2-field').select2({ theme: "bootstrap-5" });
 
         }); // End DOMContentLoaded

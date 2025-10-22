@@ -9,7 +9,29 @@
     <p class="mb-0 text-muted">Visão geral {% if equipe %}da equipe{% else %}do sistema{% endif %} de encomendas</p> {# Updated text color class #}
 </div>
 
-{# Add dropdown here to switch between teams if user belongs to multiple #}
+{# Team Switcher Dropdown (Only show if user has multiple teams) #}
+{% if user.equipes.count > 1 %}
+<div class="mb-4">
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="teamSwitchDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-people me-2"></i> Equipe Atual: {% if equipe %}{{ equipe.nome }}{% else %}Nenhuma{% endif %}
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="teamSwitchDropdown">
+            {% for team in user.equipes.all %}
+            <li>
+                <a class="dropdown-item {% if equipe and equipe.id == team.id %}active{% endif %}"
+                   href="{% url 'dashboard_equipe' equipe_id=team.id %}">
+                    {{ team.nome }}
+                </a>
+            </li>
+            {% endfor %}
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'listar_equipes' %}">Gerenciar Equipes</a></li>
+        </ul>
+    </div>
+</div>
+{% endif %}
+
 
 {% if equipe %} {# Only show stats if within a team context #}
 <div class="row mb-4">
@@ -67,34 +89,36 @@
                 <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Ações Rápidas (Equipe: {{ equipe.nome }})</h5>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        {# Link create to the current team - adjust if URL changes #}
-                        {# If create URL needs team_id: {% url 'encomenda_create' equipe_id=equipe.id %} #}
-                        <a href="{% url 'encomenda_create' %}" class="btn btn-primary w-100 py-3">
-                            <i class="bi bi-plus-circle me-2"></i>
-                            Nova Encomenda
-                        </a>
-                    </div>
-                    {# Keep global actions if Cliente/Produto/Fornecedor are global #}
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'cliente_create' %}" class="btn btn-success w-100 py-3">
-                            <i class="bi bi-person-plus me-2"></i>
-                            Novo Cliente
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'produto_create' %}" class="btn btn-info w-100 py-3">
-                            <i class="bi bi-box me-2"></i>
-                            Novo Produto
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'fornecedor_create' %}" class="btn btn-warning w-100 py-3">
-                            <i class="bi bi-truck me-2"></i>
-                            Novo Fornecedor
-                        </a>
-                    </div>
+                 {# Use flex-wrap for smaller screens #}
+                <div class="d-flex flex-wrap gap-2 justify-content-start">
+                    {# Link create to the current team #}
+                    <a href="{% url 'encomenda_create_equipe' equipe_id=equipe.id %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Nova Encomenda
+                    </a>
+                    {# --- UPDATED LINKS for team-specific lists --- #}
+                    <a href="{% url 'cliente_list' equipe_id=equipe.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-people me-2"></i> Ver Clientes
+                    </a>
+                    <a href="{% url 'cliente_create' equipe_id=equipe.id %}" class="btn btn-success">
+                        <i class="bi bi-person-plus me-2"></i>
+                        Novo Cliente
+                    </a>
+                     <a href="{% url 'produto_list' equipe_id=equipe.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-box me-2"></i> Ver Produtos
+                    </a>
+                    <a href="{% url 'produto_create' equipe_id=equipe.id %}" class="btn btn-info">
+                        <i class="bi bi-box me-2"></i>
+                        Novo Produto
+                    </a>
+                    <a href="{% url 'fornecedor_list' equipe_id=equipe.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-truck me-2"></i> Ver Fornecedores
+                    </a>
+                    <a href="{% url 'fornecedor_create' equipe_id=equipe.id %}" class="btn btn-warning">
+                        <i class="bi bi-truck me-2"></i>
+                        Novo Fornecedor
+                    </a>
+                    {# --- END UPDATED LINKS --- #}
                 </div>
             </div>
         </div>
@@ -106,8 +130,8 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Últimas Encomendas (Equipe: {{ equipe.nome }})</h5>
-                {# Link list view potentially filtered by team #}
-                <a href="{% url 'encomenda_list' %}" class="btn btn-outline-light btn-sm"> {# Updated button class #}
+                {# Link list view filtered by current team #}
+                <a href="{% url 'encomenda_list' %}?equipe={{ equipe.id }}" class="btn btn-outline-light btn-sm"> {# Updated button class #}
                     Ver Todas <i class="bi bi-arrow-right ms-1"></i>
                 </a>
             </div>
@@ -135,6 +159,7 @@
                                     </td>
                                     <td>
                                         <div>
+                                            {# Link to client detail if implemented #}
                                             <strong>{{ encomenda.cliente.nome }}</strong><br>
                                             <small class="text-muted">{{ encomenda.cliente.codigo }}</small>
                                         </div>
@@ -170,8 +195,8 @@
                         <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
                         <h5 class="text-muted mt-3">Nenhuma encomenda encontrada para esta equipe</h5>
                         <p class="text-muted">Comece criando a primeira encomenda!</p>
-                        {# Adjust URL if needed: {% url 'encomenda_create' equipe_id=equipe.id %} #}
-                        <a href="{% url 'encomenda_create' %}" class="btn btn-primary">
+                        {# Link create to the current team #}
+                        <a href="{% url 'encomenda_create_equipe' equipe_id=equipe.id %}" class="btn btn-primary">
                             <i class="bi bi-plus-circle me-2"></i>Nova Encomenda
                         </a>
                     </div>
@@ -180,13 +205,23 @@
         </div>
     </div>
 </div>
-{% else %} {# Fallback if no specific equipe context was found (shouldn't happen with current view logic) #}
+{% else %} {# Fallback if no specific equipe context was found #}
  <div class="alert alert-info">
-    <i class="bi bi-people me-2"></i>
-    Você não parece estar associado a uma equipe específica no momento. Selecione uma equipe ou entre em contato com o administrador.
-    <br><br>
-     <a href="{% url 'listar_equipes' %}" class="btn btn-primary">Ver Minhas Equipes</a>
+    <i class="bi bi-info-circle me-2"></i>
+    Por favor, selecione uma equipe no menu <a href="{% url 'listar_equipes' %}">Início / Equipes</a> para visualizar o dashboard.
 </div>
 {% endif %} {# End if equipe #}
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Optional: Store the selected team ID when switching dashboards
+document.addEventListener('DOMContentLoaded', function() {
+    const teamId = "{{ equipe.id|default:'' }}";
+    if (teamId) {
+        sessionStorage.setItem('currentTeamId', teamId);
+    }
+});
+</script>
 {% endblock %}

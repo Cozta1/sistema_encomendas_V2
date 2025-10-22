@@ -1,54 +1,51 @@
 {% extends 'encomendas/base.html' %}
 
-{% block title %}Produtos - Sistema de Encomendas{% endblock %}
+{% block title %}Produtos - {{ equipe.nome }} - Sistema de Encomendas{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center">
         <div>
-            <h1><i class="bi bi-box me-3"></i>Produtos</h1>
-            <p class="mb-0">Gerencie o catálogo de produtos</p>
+            <h1><i class="bi bi-box me-3"></i>Produtos - {{ equipe.nome }}</h1>
+            <p class="mb-0">Gerencie o catálogo de produtos da equipe</p>
         </div>
-        <a href="{% url 'produto_create' %}" class="btn btn-primary">
+        <a href="{% url 'produto_create' equipe_id=equipe.id %}" class="btn btn-primary">
             <i class="bi bi-plus-circle me-2"></i>Novo Produto
         </a>
     </div>
 </div>
 
-<!-- Busca -->
 <div class="card mb-4">
     <div class="card-body">
-        <form method="get" class="row g-3">
+         <form method="get" class="row g-3">
             <div class="col-md-8">
-                <input type="text" name="search" class="form-control" 
-                       placeholder="Buscar por nome, código ou categoria..." 
-                       value="{{ current_search|default:'' }}">
+                {{ filtro_form.search }}
             </div>
             <div class="col-md-4">
                 <button type="submit" class="btn btn-primary me-2">
                     <i class="bi bi-search me-1"></i>Buscar
                 </button>
-                <a href="{% url 'produto_list' %}" class="btn btn-outline-secondary">
-                    <i class="bi bi-x-circle"></i>
+                <a href="{% url 'produto_list' equipe_id=equipe.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Limpar
                 </a>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Lista de Produtos -->
 <div class="card">
     <div class="card-header">
         <h5 class="mb-0">
             <i class="bi bi-list-ul me-2"></i>
             {% if page_obj.paginator.count %}
-                {{ page_obj.paginator.count }} produto{{ page_obj.paginator.count|pluralize }}
+                {{ page_obj.paginator.count }} produto{{ page_obj.paginator.count|pluralize }} encontrado{{ page_obj.paginator.count|pluralize:"s" }}
             {% else %}
                 Nenhum produto encontrado
             {% endif %}
+             na equipe {{ equipe.nome }}
         </h5>
     </div>
-    
+
     <div class="card-body p-0">
         {% if page_obj %}
             <div class="table-responsive">
@@ -59,7 +56,7 @@
                             <th>Nome</th>
                             <th>Categoria</th>
                             <th>Preço Base</th>
-                            <th>Encomendas</th>
+                            <th>Uso (Encomendas Equipe)</th> {# Clarify scope #}
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -84,16 +81,18 @@
                             </td>
                             <td><strong>R$ {{ produto.preco_base|floatformat:2 }}</strong></td>
                             <td>
+                                {# ***** CORRECTED COUNT ACCESS ***** #}
                                 <span class="badge bg-primary">
-                                    {{ produto.itemencomenda_set.count }}
+                                    {{ produto.uso_equipe_count }}
                                 </span>
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'encomenda_create' %}?produto={{ produto.id }}" 
-                                       class="btn btn-outline-success" title="Nova Encomenda">
+                                    <a href="{% url 'encomenda_create_equipe' equipe_id=equipe.id %}?produto={{ produto.id }}"
+                                       class="btn btn-outline-success" title="Nova Encomenda ({{ equipe.nome }})">
                                         <i class="bi bi-plus-circle"></i>
                                     </a>
+                                    {# Add Edit/Delete links if views exist #}
                                 </div>
                             </td>
                         </tr>
@@ -101,16 +100,16 @@
                         <tr>
                             <td colspan="6" class="text-center py-5">
                                 <i class="bi bi-box text-muted" style="font-size: 3rem;"></i>
-                                <h5 class="text-muted mt-3">Nenhum produto encontrado</h5>
+                                <h5 class="text-muted mt-3">Nenhum produto encontrado para "{{ equipe.nome }}"</h5>
                                 <p class="text-muted">
                                     {% if current_search %}
-                                        Tente ajustar a busca ou 
-                                        <a href="{% url 'produto_list' %}">limpar filtros</a>
+                                        Tente ajustar a busca ou
+                                        <a href="{% url 'produto_list' equipe_id=equipe.id %}">limpar filtros</a>.
                                     {% else %}
-                                        Comece cadastrando seu primeiro produto!
+                                        Cadastre o primeiro produto para esta equipe!
                                     {% endif %}
                                 </p>
-                                <a href="{% url 'produto_create' %}" class="btn btn-primary">
+                                <a href="{% url 'produto_create' equipe_id=equipe.id %}" class="btn btn-primary">
                                     <i class="bi bi-plus-circle me-2"></i>Novo Produto
                                 </a>
                             </td>
@@ -119,7 +118,59 @@
                     </tbody>
                 </table>
             </div>
+             {# --- Pagination --- #}
+             {% if page_obj.has_other_pages %}
+             <div class="card-footer">
+                 <nav aria-label="Navegação de páginas">
+                     <ul class="pagination justify-content-center mb-0">
+                         {% with base_query=request.GET.urlencode|default:'' %}
+                         {% if page_obj.has_previous %}
+                         <li class="page-item">
+                             <a class="page-link" href="?page=1&{{ base_query }}"><i class="bi bi-chevron-double-left"></i></a>
+                         </li>
+                         <li class="page-item">
+                             <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ base_query }}"><i class="bi bi-chevron-left"></i></a>
+                         </li>
+                         {% else %}
+                         <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-double-left"></i></span></li>
+                         <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-left"></i></span></li>
+                         {% endif %}
+
+                         {% for num in page_obj.paginator.page_range %}
+                             {% if page_obj.number == num %}
+                             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                             {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                             <li class="page-item"><a class="page-link" href="?page={{ num }}&{{ base_query }}">{{ num }}</a></li>
+                             {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                             <li class="page-item disabled"><span class="page-link">...</span></li>
+                             {% endif %}
+                         {% endfor %}
+
+                         {% if page_obj.has_next %}
+                         <li class="page-item">
+                             <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ base_query }}"><i class="bi bi-chevron-right"></i></a>
+                         </li>
+                         <li class="page-item">
+                             <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&{{ base_query }}"><i class="bi bi-chevron-double-right"></i></a>
+                         </li>
+                         {% else %}
+                          <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-right"></i></span></li>
+                          <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-double-right"></i></span></li>
+                         {% endif %}
+                         {% endwith %}
+                     </ul>
+                 </nav>
+             </div>
+             {% endif %}
+             {# --- End Pagination --- #}
         {% endif %}
     </div>
+</div>
+
+{# --- Back button --- #}
+<div class="mt-4">
+    <a href="{% url 'dashboard_equipe' equipe_id=equipe.id %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Voltar ao Dashboard da Equipe
+    </a>
 </div>
 {% endblock %}
