@@ -39,7 +39,8 @@ def registro(request):
     if request.user.is_authenticated:
         # Redirect authenticated users away from registration
         messages.info(request, "Você já está logado.")
-        return redirect('dashboard') # Or 'listar_equipes'
+        # *** CORRECTED REDIRECT ***
+        return redirect('dashboard_global') # Redirect to the main dashboard router view
 
     if request.method == 'POST':
         form = RegistroUsuarioForm(request.POST)
@@ -71,7 +72,8 @@ def login_view(request):
     if request.user.is_authenticated:
         # Redirect authenticated users away from login
         messages.info(request, "Você já está logado.")
-        return redirect('dashboard') # Or 'listar_equipes'
+        # *** CORRECTED REDIRECT ***
+        return redirect('dashboard_global') # Redirect to the main dashboard router view
 
     if request.method == 'POST':
         form = LoginForm(request.POST)
@@ -106,7 +108,8 @@ def login_view(request):
                     if url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}):
                          return redirect(next_url)
                 # If no 'next' or it's unsafe, redirect to default dashboard
-                return redirect('dashboard') # Main dashboard view handles team logic
+                # *** CORRECTED REDIRECT ***
+                return redirect('dashboard_global') # Redirect to the main dashboard router view
 
             else:
                 messages.error(request, 'Email ou senha incorretos.')
@@ -134,7 +137,8 @@ def solicitar_reset_senha(request):
     """View para solicitar reset de senha"""
     if request.user.is_authenticated:
         messages.info(request, "Você já está logado.")
-        return redirect('dashboard') # Redirect authenticated users
+        # *** CORRECTED REDIRECT ***
+        return redirect('dashboard_global') # Redirect authenticated users
 
     if request.method == 'POST':
         form = SolicitarResetSenhaForm(request.POST)
@@ -171,7 +175,8 @@ def redefinir_senha(request, token):
     """View para redefinir senha com token"""
     if request.user.is_authenticated:
         messages.info(request, "Você já está logado.")
-        return redirect('dashboard') # Redirect authenticated users
+        # *** CORRECTED REDIRECT ***
+        return redirect('dashboard_global') # Redirect authenticated users
 
     try:
         # Find user by token, ensure they are active
