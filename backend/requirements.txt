@@ -1,0 +1,15 @@
+# requirements.txt
+
+Django==5.2.7
+django-extensions==3.2.3
+# Pillow==10.0.1
+python-decouple==3.8
+whitenoise==6.6.0
+# Adicionados para a API:
+djangorestframework==3.15.1
+django-cors-headers==4.3.1
+djangorestframework-simplejwt==5.3.1
+# Adicione outras dependências que você possa ter, como pymysql ou psycopg2
+pymysql==1.1.0 # Exemplo, se estiver usando MySQL
+# psycopg2-binary==2.9.9 # Exemplo, se estiver usando PostgreSQL
+django-filter==24.2 # Ou a versão instalada
