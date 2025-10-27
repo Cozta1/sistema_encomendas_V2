@@ -38,6 +38,25 @@ from rest_framework import status
 # Importe o novo serializer
 from .serializers import UserRegistrationSerializer
 
+
+from rest_framework.views import APIView # Import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated # Para proteger a view
+
+# Importe os serializers que usaremos
+from .serializers import EquipeSerializer, ConviteEquipeSerializer, MembroEquipeSerializer
+# Importe os modelos
+from .models import MembroEquipe, ConviteEquipe, Equipe # Garanta que Equipe está importado
+
+
+
+from django.shortcuts import get_object_or_404
+from django.db.models import Q, Count
+from .models import Equipe, Encomenda # Importe Encomenda
+from .serializers import EncomendaSerializer # Importe EncomendaSerializer (ou um mais simples)
+import uuid # Para validar UUID
+
 # --- Other views (registro, logout_view, solicitar_reset_senha, etc.) remain the same ---
 
 # NO @login_required here
@@ -680,3 +699,154 @@ class UserRegisterView(generics.CreateAPIView):
             status=status.HTTP_201_CREATED,
             headers=headers
         )
+    
+
+
+# --- API View para Listar Equipes e Convites do Usuário ---
+class UserTeamsInvitesView(APIView):
+    """
+    Endpoint que retorna as equipes das quais o usuário é membro
+    e os convites pendentes para o usuário.
+    """
+    permission_classes = [IsAuthenticated] # Somente usuários logados podem acessar
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        # Buscar associações de MembroEquipe para o usuário
+        membros_info = MembroEquipe.objects.filter(
+            usuario=user
+        ).select_related('equipe', 'equipe__administrador').order_by('equipe__nome')
+
+        # Buscar convites pendentes para o email do usuário
+        convites_pendentes = ConviteEquipe.objects.filter(
+            email__iexact=user.email,
+            status='pendente'
+        ).select_related('equipe', 'criado_por').order_by('-data_criacao')
+
+        # Serializar os dados
+        # Para equipes, precisamos adicionar o papel do usuário na equipe
+        teams_data = []
+        for membro in membros_info:
+            # Usamos o EquipeSerializer para formatar os dados da equipe
+            equipe_serializer = EquipeSerializer(membro.equipe, context={'request': request})
+            team_data = equipe_serializer.data
+            # Adicionamos o papel específico deste usuário nesta equipe
+            team_data['meu_papel'] = membro.papel
+            team_data['sou_administrador_principal'] = (membro.equipe.administrador == user)
+            teams_data.append(team_data)
+
+        invites_serializer = ConviteEquipeSerializer(convites_pendentes, many=True, context={'request': request})
+
+        # Montar a resposta
+        response_data = {
+            'teams': teams_data, # Lista de equipes com papel do usuário
+            'invitations': invites_serializer.data
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+# --- (Adicional, mas necessário para as ações) Views para Aceitar/Rejeitar Convite ---
+class AcceptInviteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, invite_id, *args, **kwargs):
+        try:
+            # Busca o convite pelo ID e garante que pertence ao email do usuário logado
+            convite = get_object_or_404(ConviteEquipe, id=invite_id, email__iexact=request.user.email)
+
+            if not convite.eh_valido(): # Supõe que o método eh_valido existe no modelo ConviteEquipe
+                return Response({'detail': 'Este convite expirou ou não é mais válido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if convite.equipe.eh_membro(request.user):
+                convite.status = 'aceito' # Marcar como aceito mesmo que já seja membro
+                convite.data_resposta = timezone.now()
+                convite.save(update_fields=['status', 'data_resposta'])
+                return Response({'detail': f'Você já é membro da equipe "{convite.equipe.nome}". Convite marcado como respondido.'}, status=status.HTTP_200_OK)
+
+            if convite.aceitar(request.user): # Supõe que o método aceitar existe
+                 # Retorna a informação da equipe atualizada (opcional)
+                 membro = convite.equipe.get_membro(request.user)
+                 membro_serializer = MembroEquipeSerializer(membro)
+                 return Response({
+                     'detail': f'Você foi adicionado à equipe "{convite.equipe.nome}" como {convite.get_papel_display()}.',
+                     'membro_info': membro_serializer.data
+                     }, status=status.HTTP_200_OK)
+            else:
+                # O método aceitar() pode ter falhado por alguma razão interna
+                return Response({'detail': 'Não foi possível aceitar o convite neste momento.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except Http404:
+            return Response({'detail': 'Convite não encontrado ou inválido para este usuário.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(f"Erro ao aceitar convite {invite_id}: {e}")
+            return Response({'detail': 'Ocorreu um erro interno ao processar sua solicitação.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RejectInviteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, invite_id, *args, **kwargs):
+        try:
+            convite = get_object_or_404(ConviteEquipe, id=invite_id, email__iexact=request.user.email)
+
+            if convite.status != 'pendente':
+                 return Response({'detail': 'Este convite já foi respondido ou expirou.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            convite.rejeitar() # Supõe que o método rejeitar existe
+            return Response({'detail': f'Você rejeitou o convite para a equipe "{convite.equipe.nome}".'}, status=status.HTTP_200_OK)
+
+        except Http404:
+            return Response({'detail': 'Convite não encontrado ou inválido para este usuário.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(f"Erro ao rejeitar convite {invite_id}: {e}")
+            return Response({'detail': 'Ocorreu um erro interno ao processar sua solicitação.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
+class TeamDashboardDataView(APIView):
+    """
+    Endpoint que retorna dados agregados para o dashboard de uma equipe específica.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, equipe_id, *args, **kwargs):
+        user = request.user
+        try:
+            # Valida o UUID e verifica se o usuário é membro
+            equipe_uuid = uuid.UUID(str(equipe_id))
+            equipe = get_object_or_404(Equipe, id=equipe_uuid, membros=user)
+        except (ValueError, Http404):
+            return Response({'detail': 'Equipe não encontrada ou acesso negado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Buscar encomendas da equipe
+        encomendas_equipe = Encomenda.objects.filter(equipe=equipe)
+
+        # Calcular estatísticas
+        total_encomendas = encomendas_equipe.count()
+        encomendas_pendentes = encomendas_equipe.filter(
+            status__in=['criada', 'cotacao', 'aprovada', 'em_andamento', 'pronta']
+        ).count()
+        encomendas_entregues = encomendas_equipe.filter(status='entregue').count()
+
+        # Buscar últimas encomendas (ex: 5 mais recentes)
+        ultimas_encomendas = encomendas_equipe.select_related('cliente').order_by('-data_criacao')[:5]
+        ultimas_encomendas_serializer = EncomendaSerializer(ultimas_encomendas, many=True, context={'request': request}) # Use um serializer apropriado
+
+        # Montar dados da resposta
+        response_data = {
+            'team_info': { # Adiciona informações básicas da equipe
+                'id': equipe.id,
+                'nome': equipe.nome,
+                'descricao': equipe.descricao,
+                # Adicione outros dados da equipe se necessário
+            },
+            'stats': {
+                'total': total_encomendas,
+                'pending': encomendas_pendentes,
+                'delivered': encomendas_entregues,
+            },
+            'recent_orders': ultimas_encomendas_serializer.data,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)

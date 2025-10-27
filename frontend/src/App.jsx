@@ -1,72 +1,100 @@
 import React from 'react';
-// Garantir que Link está importado aqui
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useParams } from 'react-router-dom';
 
-// Layout e Páginas
-import Layout from './components/Layout'; // Importar Layout
+// Layout e Páginas Existentes
+import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import EncomendasPage from './pages/EncomendasPage';
-// import EquipesPage from './pages/EquipesPage'; // Exemplo
+import EquipesPage from './pages/EquipesPage';
+import TeamDashboardPage from './pages/TeamDashboardPage'; // Usando o componente real agora
 
-// --- CORREÇÃO: Mover DashboardPlaceholder para FORA da função App ---
-const DashboardPlaceholder = () => {
-  const token = localStorage.getItem('accessToken');
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user_nome');
-    localStorage.removeItem('user_email');
-    sessionStorage.removeItem('currentTeamId');
-    window.location.href = '/login';
-  };
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>Dashboard (Protegido)</h1>
-      <p>Conteúdo do Dashboard virá aqui.</p>
-       <nav>
-        <ul>
-          <li>
-            <Link to="/encomendas">Ver Encomendas</Link>
-          </li>
-          {/* Adicione outros links aqui */}
-        </ul>
-      </nav>
-      <button onClick={handleLogout} style={{ marginTop: '20px' }}>Logout</button>
-    </div>
-  );
+// --- NOVOS PLACEHOLDERS ---
+const PlaceholderPage = ({ title }) => {
+    const params = useParams(); // Para pegar IDs da URL
+    return (
+        <div style={{ padding: '20px' }}>
+            <h1>{title || 'Página em Construção'}</h1>
+            <p>Esta página será implementada.</p>
+            {/* Mostra parâmetros da URL para debug */}
+            {Object.keys(params).length > 0 && (
+                <pre>Parâmetros da URL: {JSON.stringify(params)}</pre>
+            )}
+            <p><Link to="/equipes">Voltar para Equipes</Link></p>
+        </div>
+    );
 };
-// --- Fim Dashboard ---
 
-// Componente App principal
+const EncomendaFormPage = () => <PlaceholderPage title="Formulário de Encomenda (Criar/Editar)" />;
+const EncomendaDetailPage = () => <PlaceholderPage title="Detalhes da Encomenda" />;
+const ClienteFormPage = () => <PlaceholderPage title="Formulário de Cliente" />;
+const ProdutoFormPage = () => <PlaceholderPage title="Formulário de Produto" />;
+const FornecedorFormPage = () => <PlaceholderPage title="Formulário de Fornecedor" />;
+const ClienteListPage = () => <PlaceholderPage title="Lista de Clientes da Equipe" />;
+const ProdutoListPage = () => <PlaceholderPage title="Lista de Produtos da Equipe" />;
+const FornecedorListPage = () => <PlaceholderPage title="Lista de Fornecedores da Equipe" />;
+const CriarEquipePage = () => <PlaceholderPage title="Criar Nova Equipe" />;
+const GerenciarEquipePage = () => <PlaceholderPage title="Gerenciar Equipe" />;
+const PerfilPage = () => <PlaceholderPage title="Meu Perfil" />;
+// --- FIM NOVOS PLACEHOLDERS ---
+
+
+// --- Componente App principal ---
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Rotas Públicas */}
+    <BrowserRouter> {/* Habilita o roteamento */}
+      <Routes> {/* Define o container das rotas */}
+
+        <Route path="/" element={<Layout />}>
+
+          {/* Index e Rotas de Equipe */}
+          <Route index element={<EquipesPage />} />
+          <Route path="equipes" element={<EquipesPage />} />
+          <Route path="equipes/criar" element={<CriarEquipePage />} />
+          <Route path="equipes/:equipeId/gerenciar" element={<GerenciarEquipePage />} />
+          <Route path="dashboard/:equipeId" element={<TeamDashboardPage />} />
+
+          {/* Rotas de Encomendas */}
+          <Route path="encomendas" element={<EncomendasPage />} />
+          {/* Nota: :encomendaId deve ser tratado como número no componente */}
+          <Route path="encomendas/:encomendaId" element={<EncomendaDetailPage />} />
+          <Route path="encomendas/:encomendaId/editar" element={<EncomendaFormPage />} />
+          <Route path="encomendas/nova/equipe/:equipeId" element={<EncomendaFormPage />} />
+
+          {/* Rotas de Clientes (por equipe) */}
+          <Route path="clientes/equipe/:equipeId" element={<ClienteListPage />} />
+          <Route path="clientes/novo/equipe/:equipeId" element={<ClienteFormPage />} />
+          {/* Adicionar rota para editar cliente depois */}
+          {/* <Route path="clientes/:clienteId/editar/equipe/:equipeId" element={<ClienteFormPage />} /> */}
+
+          {/* Rotas de Produtos (por equipe) */}
+          <Route path="produtos/equipe/:equipeId" element={<ProdutoListPage />} />
+          <Route path="produtos/novo/equipe/:equipeId" element={<ProdutoFormPage />} />
+          {/* Adicionar rota para editar produto depois */}
+
+          {/* Rotas de Fornecedores (por equipe) */}
+          <Route path="fornecedores/equipe/:equipeId" element={<FornecedorListPage />} />
+          <Route path="fornecedores/novo/equipe/:equipeId" element={<FornecedorFormPage />} />
+          {/* Adicionar rota para editar fornecedor depois */}
+
+          {/* Rota de Perfil */}
+          <Route path="perfil" element={<PerfilPage />} />
+
+          {/* Rota Catch-all (404) DENTRO do layout */}
+          <Route path="*" element={
+            <div style={{ padding: '20px' }}>
+                <h2>Página Não Encontrada (404)</h2>
+                <p>O recurso que você procura não foi encontrado dentro da aplicação.</p>
+                <Link to="/equipes">Voltar para a página inicial</Link>
+            </div>
+          }/>
+        </Route> {/* Fim das rotas protegidas dentro do Layout */}
+
+        {/* Rotas Públicas (fora do Layout) */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Rotas Protegidas (dentro do Layout) */}
-        <Route path="/" element={<Layout />}> {/* Rota pai com Layout */}
-          {/* Rota Index (padrão dentro do layout) */}
-          {/* Agora DashboardPlaceholder está definido corretamente */}
-          <Route index element={<DashboardPlaceholder />} />
-          <Route path="dashboard" element={<DashboardPlaceholder />} />
-          <Route path="encomendas" element={<EncomendasPage />} />
-          {/* Adicionar outras rotas protegidas aqui */}
-          {/* <Route path="equipes" element={<EquipesPage />} /> */}
-
-          {/* Rota Catch-all DENTRO do layout */}
-          <Route path="*" element={<div>Página não encontrada (Layout)</div>}/>
-        </Route>
-
-        {/* Rota Catch-all FORA do layout (opcional) */}
-        {/* <Route path="*" element={<div>Página não encontrada</div>} /> */}
-
+        
       </Routes>
     </BrowserRouter>
   );

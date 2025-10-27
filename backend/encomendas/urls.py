@@ -11,6 +11,9 @@ from .views_auth import UserRegisterView # Importe a nova view
 # Importe as views de autenticação/equipes se for incluí-las aqui (opcional)
 # from . import views_auth
 
+from .views_auth import UserRegisterView, UserTeamsInvitesView, AcceptInviteView, RejectInviteView
+from .views_auth import TeamDashboardDataView # Ou from .views import TeamDashboardDataView
+
 # --- Router Principal para ViewSets ---
 router = DefaultRouter()
 # Registra os ViewSets. O DRF criará as URLs CRUD automaticamente:
@@ -43,6 +46,14 @@ urlpatterns = [
     # --- NOVA URL DE REGISTRO ---
     path('users/register/', UserRegisterView.as_view(), name='user_register'), # Ex: /api/users/register/
     
+    # --- URL PARA LISTAR EQUIPES E CONVITES DO USUÁRIO ---
+    path('my-teams-invites/', UserTeamsInvitesView.as_view(), name='my_teams_invites'),
+
+    # --- URLs PARA AÇÕES DE CONVITE ---
+    path('invites/<uuid:invite_id>/accept/', AcceptInviteView.as_view(), name='accept_invite_api'),
+    path('invites/<uuid:invite_id>/reject/', RejectInviteView.as_view(), name='reject_invite_api'),
+    path('equipes/<uuid:equipe_id>/dashboard-data/', TeamDashboardDataView.as_view(), name='team_dashboard_data_api'),
+
     # --- Mantenha as URLs das APIs Antigas/Separadas ---
     # Certifique-se de que os nomes ('api_produto_info', etc.) não conflitem
     path('produto/<int:produto_id>/info/', views.api_produto_info, name='api_produto_info'), # Ex: /api/produto/1/info/
@@ -50,6 +61,7 @@ urlpatterns = [
     path('search-produtos/', views.search_produtos, name='search_produtos'), # Ex: /api/search-produtos/
     path('search-clientes/', views.search_clientes, name='search_clientes'), # Ex: /api/search-clientes/
     path('search-fornecedores/', views.search_fornecedores, name='search_fornecedores'), # Ex: /api/search-fornecedores/
+    
 
     # Mantenha a URL do PDF (se a view foi mantida)
     path('encomendas/<int:pk>/pdf/', views.encomenda_pdf, name='encomenda_pdf_api'), # Renomeado para evitar conflito
@@ -65,4 +77,6 @@ urlpatterns = [
     # path('auth/registro/', views_auth.registro, name='registro_api'), # Renomear para evitar conflitos
     # path('auth/login/', views_auth.login_view, name='login_api'), # Não faz sentido via API aqui (usar /api/token/)
     # ...
+
+    
 ]
