@@ -1,4 +1,5 @@
 # encomendas/views.py
+import uuid
 from django.shortcuts import get_object_or_404
 from django.http import Http404, JsonResponse, HttpResponse # Mantenha JsonResponse/HttpResponse para APIs
 from django.contrib.auth.decorators import login_required # Mantenha se usar em APIs existentes

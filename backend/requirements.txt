@@ -12,3 +12,7 @@ pymysql==1.1.0 # Exemplo, se estiver usando MySQL
 cryptography # Adicionado para corrigir erro de auth do pymysql (caching_sha2_password)
 # psycopg2-binary==2.9.9 # Exemplo, se estiver usando PostgreSQL
 django-filter==24.2 # Ou a versão instalada
+
+
+
+# ADICIONAR jwt-decode

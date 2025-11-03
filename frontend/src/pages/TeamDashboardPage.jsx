@@ -139,6 +139,9 @@ function TeamDashboardPage() {
         <div className="card-header"><h5 className="mb-0"><i className="bi bi-lightning me-2"></i>Ações Rápidas</h5></div>
         <div className="card-body">
           <div className="d-flex flex-wrap gap-2 justify-content-start">
+            <Link to={`/encomendas/`} className="btn btn-outline-secondary"> {/* Rota a ser criada */}
+              <i className="bi bi-plus-circle me-2"></i> Ver Encomendas
+            </Link>
             <Link to={`/encomendas/nova/equipe/${equipeId}`} className="btn btn-primary"> {/* Rota a ser criada */}
               <i className="bi bi-plus-circle me-2"></i> Nova Encomenda
             </Link>

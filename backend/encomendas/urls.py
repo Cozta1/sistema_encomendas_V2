@@ -1,82 +1,50 @@
-# encomendas/urls.py
-
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-# (Opcional) Importe routers aninhados se precisar de URLs como /equipes/ID/encomendas/
-# from rest_framework_nested import routers
-
-# Importe as views que contêm os ViewSets e as APIs antigas/separadas
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 from . import views
-from .views_auth import UserRegisterView # Importe a nova view
-# Importe as views de autenticação/equipes se for incluí-las aqui (opcional)
-# from . import views_auth
+from . import views_auth
 
-from .views_auth import UserRegisterView, UserTeamsInvitesView, AcceptInviteView, RejectInviteView
-from .views_auth import TeamDashboardDataView # Ou from .views import TeamDashboardDataView
-
-# --- Router Principal para ViewSets ---
+# --- Configuração do ViewSet Router ---
+# O router cria automaticamente as URLs para ViewSets (ex: GET, POST, PUT, DELETE)
 router = DefaultRouter()
-# Registra os ViewSets. O DRF criará as URLs CRUD automaticamente:
-# /api/encomendas/
-# /api/encomendas/{pk}/
-router.register(r'encomendas', views.EncomendaViewSet, basename='encomenda')
-router.register(r'clientes', views.ClienteViewSet, basename='cliente')
-router.register(r'produtos', views.ProdutoViewSet, basename='produto')
-router.register(r'fornecedores', views.FornecedorViewSet, basename='fornecedor')
-router.register(r'entregas', views.EntregaViewSet, basename='entrega') # ViewSet ReadOnly
+router.register(r'equipes', views_auth.EquipeViewSet) # Gera /api/equipes/
+router.register(r'clientes', views.ClienteViewSet) # Gera /api/clientes/
+router.register(r'produtos', views.ProdutoViewSet) # Gera /api/produtos/
+router.register(r'fornecedores', views.FornecedorViewSet) # Gera /api/fornecedores/
+router.register(r'encomendas', views.EncomendaViewSet) # Gera /api/encomendas/
+router.register(r'entregas', views.EntregaViewSet) # Gera /api/entregas/
+router.register(r'convites', views_auth.ConviteViewSet, basename='convite') # Gera /api/convites/
 
-# --- (Opcional) Router Aninhado para recursos dentro de Equipes ---
-# Exemplo: /api/equipes/{equipe_pk}/clientes/
-# equipes_router = routers.SimpleRouter()
-# equipes_router.register(r'equipes', views_auth.EquipeViewSet, basename='equipe') # Supondo que exista um EquipeViewSet
-
-# nested_router = routers.NestedSimpleRouter(equipes_router, r'equipes', lookup='equipe')
-# nested_router.register(r'clientes', views.ClienteViewSet, basename='equipe-clientes')
-# nested_router.register(r'produtos', views.ProdutoViewSet, basename='equipe-produtos')
-# nested_router.register(r'fornecedores', views.FornecedorViewSet, basename='equipe-fornecedores')
-# nested_router.register(r'encomendas', views.EncomendaViewSet, basename='equipe-encomendas')
-
+# --- Lista de URLs ---
 urlpatterns = [
-    # --- URLs Geradas pelo Router Principal ---
+    # 1. URLs do Router (CRUDs)
+    # Inclui todas as URLs geradas pelo router (ex: /equipes/, /clientes/)
     path('', include(router.urls)),
 
-    # --- (Opcional) URLs Geradas pelo Router Aninhado ---
-    # path('', include(nested_router.urls)),
+    # 2. URLs de Autenticação (JWT)
+    # (Ex: /api/auth/token/)
+    path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # --- NOVA URL DE REGISTRO ---
-    path('users/register/', UserRegisterView.as_view(), name='user_register'), # Ex: /api/users/register/
-    
-    # --- URL PARA LISTAR EQUIPES E CONVITES DO USUÁRIO ---
-    path('my-teams-invites/', UserTeamsInvitesView.as_view(), name='my_teams_invites'),
+    # 3. URLs de Autenticação (Customizadas)
+    # (Ex: /api/auth/register/)
+    path('auth/register/', views_auth.RegisterView.as_view(), name='auth_register'),
+    path('auth/user/', views_auth.UserProfileView.as_view(), name='auth_user_profile'),
+    path('auth/alterar-senha/', views_auth.ChangePasswordView.as_view(), name='auth_change_password'),
+    path('auth/solicitar-reset-senha/', views_auth.PasswordResetRequestView.as_view(), name='auth_reset_request'),
+    path('auth/redefinir-senha/', views_auth.PasswordResetConfirmView.as_view(), name='auth_reset_confirm'),
 
-    # --- URLs PARA AÇÕES DE CONVITE ---
-    path('invites/<uuid:invite_id>/accept/', AcceptInviteView.as_view(), name='accept_invite_api'),
-    path('invites/<uuid:invite_id>/reject/', RejectInviteView.as_view(), name='reject_invite_api'),
-    path('equipes/<uuid:equipe_id>/dashboard-data/', TeamDashboardDataView.as_view(), name='team_dashboard_data_api'),
-
-    # --- Mantenha as URLs das APIs Antigas/Separadas ---
-    # Certifique-se de que os nomes ('api_produto_info', etc.) não conflitem
-    path('produto/<int:produto_id>/info/', views.api_produto_info, name='api_produto_info'), # Ex: /api/produto/1/info/
-    path('encomenda/<int:encomenda_pk>/status/', views.api_update_status, name='api_update_status'), # Ex: /api/encomenda/1/status/
-    path('search-produtos/', views.search_produtos, name='search_produtos'), # Ex: /api/search-produtos/
-    path('search-clientes/', views.search_clientes, name='search_clientes'), # Ex: /api/search-clientes/
-    path('search-fornecedores/', views.search_fornecedores, name='search_fornecedores'), # Ex: /api/search-fornecedores/
-    
-
-    # Mantenha a URL do PDF (se a view foi mantida)
-    path('encomendas/<int:pk>/pdf/', views.encomenda_pdf, name='encomenda_pdf_api'), # Renomeado para evitar conflito
-
-    # --- REMOVA ou COMENTE TODAS as URLs antigas que apontavam para views HTML ---
-    # Exemplo: path('encomendas/lista/', views.encomenda_list_html_view, name='encomenda_list_html'), # REMOVA
-    # Exemplo: path('clientes/novo/', views.cliente_create_html_view, name='cliente_create_html'), # REMOVA
-    # ... remover todas as outras ...
-
-    # --- URLs de Autenticação e Equipes ---
-    # É melhor mantê-las separadas, talvez no urls.py principal ou em 'urls_auth.py'
-    # Se decidir incluí-las aqui, ficaria algo como:
-    # path('auth/registro/', views_auth.registro, name='registro_api'), # Renomear para evitar conflitos
-    # path('auth/login/', views_auth.login_view, name='login_api'), # Não faz sentido via API aqui (usar /api/token/)
-    # ...
-
-    
+    # 4. URLs de Equipes (Ações Específicas)
+    # (Ex: /api/my-teams-invites/)
+    path('my-teams-invites/', views_auth.MyTeamsAndInvitesView.as_view(), name='my_teams_invites'),
+    path('equipes/<uuid:equipe_id>/dashboard-data/', views_auth.TeamDashboardDataView.as_view(), name='team_dashboard_data'),
+    path('equipes/<uuid:equipe_id>/membros/', views_auth.MembroEquipeListView.as_view(), name='team_member_list'),
+    path('equipes/<uuid:equipe_id>/convidar/', views_auth.ConvidarMembroView.as_view(), name='team_invite'),
+    path('convites/<uuid:convite_id>/aceitar/', views_auth.AceitarConviteView.as_view(), name='invite_accept'),
+    path('equipes/<uuid:equipe_id>/alterar-papel/<int:membro_id>/', views_auth.AlterarPapelMembroView.as_view(), name='alterar_papel_membro'),
+    path('equipes/<uuid:equipe_id>/remover/<int:membro_id>/', views_auth.RemoverMembroView.as_view(), name='remover_membro'),
+    path('equipes/<uuid:equipe_id>/sair/', views_auth.SairEquipeView.as_view(), name='sair_equipe'),
 ]

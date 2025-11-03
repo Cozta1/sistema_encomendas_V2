@@ -16,7 +16,7 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await api.post('/token/', {
+      const response = await api.post('/auth/token/', {
          email: email, // Ajuste para 'username' se necessário
          password: password,
       });
