@@ -75,8 +75,8 @@ const NavbarComponent = ({ toggleSidebar }) => {
           <i className="bi bi-list"></i>
         </button>
 
-        {/* Brand/Logo */}
-        <Link className="navbar-brand" to="/dashboard"> {/* Link para dashboard */}
+        {/* Brand/Logo (ATUALIZADO: link para /) */}
+        <Link className="navbar-brand" to="/"> {/* Link para HomePage */}
           <i className="bi bi-clipboard-check me-2"></i>
           Sistema de Encomendas
         </Link>
@@ -100,11 +100,16 @@ const NavbarComponent = ({ toggleSidebar }) => {
             {isDarkMode ? <i className="bi bi-sun-fill"></i> : <i className="bi bi-moon-fill"></i>}
           </div>
 
-          {/* Links de Perfil/Equipes (Exemplo) */}
+          {/* (NOVO) Botão Página Inicial */}
+          <Link className="nav-link me-2" to="/" title="Página Inicial"> 
+             <i className="bi bi-house-door"></i>
+           </Link>
+           
+          {/* Links de Perfil/Equipes */}
            <Link className="nav-link me-2" to="/perfil" title="Meu Perfil"> {/* Criar rota /perfil depois */}
              <i className="bi bi-person-circle"></i>
            </Link>
-           <Link className="nav-link me-2" to="/equipes" title="Minhas Equipes"> {/* Criar rota /equipes depois */}
+           <Link className="nav-link me-2" to="/equipes" title="Minhas Equipes"> 
              <i className="bi bi-people"></i>
            </Link>
 

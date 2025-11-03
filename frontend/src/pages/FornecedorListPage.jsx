@@ -2,12 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, Navigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 
-// (Opcional) Importar componentes UI (Table, Button, Form, InputGroup, Pagination, Spinner etc.)
-
-function ProdutoListPage() {
+function FornecedorListPage() {
   const { equipeId } = useParams(); // Pega o ID da equipe da URL
   const [searchParams, setSearchParams] = useSearchParams(); // Para filtros e paginação na URL
-  const [produtos, setProdutos] = useState([]);
+  const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [equipeNome, setEquipeNome] = useState(''); // Para exibir o nome da equipe
@@ -22,7 +20,7 @@ function ProdutoListPage() {
 
   const token = localStorage.getItem('accessToken');
 
-  // Função para buscar dados dos produtos
+  // Função para buscar dados
   const fetchData = useCallback(async (page = 1, currentSearch = searchTerm) => {
     if (!equipeId) {
         setError("ID da Equipe não encontrado na URL.");
@@ -40,76 +38,64 @@ function ProdutoListPage() {
     }
     params.append('ordering', 'nome'); // Ordenar por nome
 
-    // Atualiza a URL
     setSearchParams(params, { replace: true });
 
     try {
-      // Busca os produtos filtrados pela equipe e busca
-      const response = await api.get(`/produtos/?${params.toString()}`);
+      // Busca os fornecedores
+      const response = await api.get(`/fornecedores/?${params.toString()}`);
       
       const results = response.data.results || (Array.isArray(response.data) ? response.data : []);
       const count = response.data.count || results.length;
       
-      setProdutos(results);
+      setFornecedores(results);
       setTotalCount(count);
 
-      // Calcula total de páginas
-      const pageSize = results.length > 0 ? results.length : 20; // Ajuste page size se necessário
+      const pageSize = results.length > 0 ? results.length : 20; 
       setTotalPages(Math.ceil(count / pageSize));
       setCurrentPage(page);
 
-      // Tenta buscar o nome da equipe (pode vir do primeiro item ou fazer outra chamada)
+      // Tenta buscar o nome da equipe
       if (results.length > 0 && results[0].equipe_nome) {
            setEquipeNome(results[0].equipe_nome);
-      } else if (produtos.length === 0 && totalCount === 0) { // Só busca se realmente não tiver nada
+      } else if (fornecedores.length === 0 && totalCount === 0) { 
            try {
-               // Tenta buscar o nome da equipe (endpoint de EquipesPage)
-               // Esta chamada pode falhar se o usuário não for admin, idealmente teríamos /api/equipes/{id}/
                const teamData = await api.get('/my-teams-invites/');
                const foundTeam = teamData.data.teams.find(t => t.id === equipeId);
-               if (foundTeam) {
-                   setEquipeNome(foundTeam.nome);
-               } else {
-                   setEquipeNome(`Equipe ${equipeId.substring(0,8)}...`);
-               }
+               setEquipeNome(foundTeam ? foundTeam.nome : `Equipe ${equipeId.substring(0,8)}...`);
            // eslint-disable-next-line no-unused-vars
-           } catch (teamErr) { console.error("Erro ao buscar nome da equipe"); setEquipeNome(`Equipe ${equipeId.substring(0,8)}...`); }
+           } catch (teamErr) { setEquipeNome(`Equipe ${equipeId.substring(0,8)}...`); }
       }
 
     } catch (err) {
-      console.error(`Erro ao buscar produtos para equipe ${equipeId}:`, err);
+      console.error(`Erro ao buscar fornecedores para equipe ${equipeId}:`, err);
       if (err.response && (err.response.status === 401 || err.response.status === 403 || err.response.status === 404)) {
         setError('Acesso negado ou equipe não encontrada.');
       } else {
-        setError('Falha ao carregar lista de produtos.');
+        setError('Falha ao carregar lista de fornecedores.');
       }
     } finally {
       setLoading(false);
     }
-  }, [equipeId, searchTerm, setSearchParams, produtos.length, totalCount]); // Dependências
+  }, [equipeId, searchTerm, setSearchParams, fornecedores.length, totalCount]);
 
-  // Busca inicial ou quando URL muda
+  // Busca inicial
   useEffect(() => {
     const pageFromUrl = parseInt(searchParams.get('page') || '1', 10);
     const searchFromUrl = searchParams.get('search') || '';
     if (searchFromUrl !== searchTerm) setSearchTerm(searchFromUrl);
     fetchData(pageFromUrl, searchFromUrl);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipeId, searchParams]); // Depende do equipeId e dos searchParams
+  }, [equipeId, searchParams]); 
 
   // Handlers para busca
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
+  const handleSearchChange = (e) => setSearchTerm(e.target.value);
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchData(1, searchTerm); // Busca na página 1 com o novo termo
+    fetchData(1, searchTerm); 
   };
-
   const handleClearSearch = () => {
     setSearchTerm('');
-    fetchData(1, ''); // Busca na página 1 sem termo
+    fetchData(1, ''); 
   };
 
   // Handlers para paginação
@@ -122,7 +108,7 @@ function ProdutoListPage() {
   // --- Renderização ---
   if (!token) return <Navigate to="/login" replace />;
 
-  if (!equipeId) { // Segurança extra caso chegue aqui sem equipeId
+  if (!equipeId) { 
        return (
            <div style={{ padding: '20px' }} className="alert alert-danger">
                Erro: Nenhuma equipe selecionada. <br />
@@ -137,11 +123,11 @@ function ProdutoListPage() {
       <div className="page-header">
         <div className="d-flex justify-content-between align-items-center">
           <div>
-            <h1><i className="bi bi-box me-3"></i>Produtos {equipeNome ? `- ${equipeNome}` : ''}</h1>
-            <p className="mb-0 text-muted">Gerencie os produtos da equipe</p>
+            <h1><i className="bi bi-truck me-3"></i>Fornecedores {equipeNome ? `- ${equipeNome}` : ''}</h1>
+            <p className="mb-0 text-muted">Gerencie os fornecedores da equipe</p>
           </div>
-          <Link to={`/produtos/novo/equipe/${equipeId}`} className="btn btn-primary">
-            <i className="bi bi-plus-circle me-2"></i>Novo Produto
+          <Link to={`/fornecedores/novo/equipe/${equipeId}`} className="btn btn-primary">
+            <i className="bi bi-plus-circle me-2"></i>Novo Fornecedor
           </Link>
         </div>
       </div>
@@ -151,13 +137,13 @@ function ProdutoListPage() {
         <div className="card-body">
           <form onSubmit={handleSearchSubmit} className="row g-3 align-items-end">
             <div className="col-md-8">
-              <label htmlFor="searchFilter" className="form-label">Buscar Produto</label>
+              <label htmlFor="searchFilter" className="form-label">Buscar Fornecedor</label>
               <input
                 type="text"
                 id="searchFilter"
                 name="search"
                 className="form-control"
-                placeholder="Nome, código, categoria, descrição..."
+                placeholder="Nome, código, contato, e-mail..."
                 value={searchTerm}
                 onChange={handleSearchChange}
               />
@@ -182,24 +168,24 @@ function ProdutoListPage() {
          </div>
       )}
 
-      {/* Tabela de Produtos */}
+      {/* Tabela de Fornecedores */}
       {!loading && !error && (
         <div className="card">
           <div className="card-header d-flex justify-content-between align-items-center">
             <h5 className="mb-0">
               <i className="bi bi-list-ul me-2"></i>
-              {totalCount} produto(s) encontrado(s)
+              {totalCount} fornecedor(es) encontrado(s)
             </h5>
              {totalPages > 1 && (<small className="text-muted">Página {currentPage} de {totalPages}</small>)}
           </div>
           <div className="card-body p-0">
-            {produtos.length === 0 ? (
+            {fornecedores.length === 0 ? (
               <div className="text-center p-5">
-                <i className="bi bi-box-seam text-muted" style={{ fontSize: '3rem' }}></i>
-                <h5 className="text-muted mt-3">Nenhum produto encontrado</h5>
-                <p className="text-muted">{searchTerm ? 'Tente ajustar a busca.' : 'Cadastre o primeiro produto para esta equipe!'}</p>
-                <Link to={`/produtos/novo/equipe/${equipeId}`} className="btn btn-primary mt-2">
-                   <i className="bi bi-plus-circle me-2"></i>Novo Produto
+                <i className="bi bi-truck text-muted" style={{ fontSize: '3rem' }}></i>
+                <h5 className="text-muted mt-3">Nenhum fornecedor encontrado</h5>
+                <p className="text-muted">{searchTerm ? 'Tente ajustar a busca.' : 'Cadastre o primeiro fornecedor para esta equipe!'}</p>
+                <Link to={`/fornecedores/novo/equipe/${equipeId}`} className="btn btn-primary mt-2">
+                   <i className="bi bi-plus-circle me-2"></i>Novo Fornecedor
                 </Link>
               </div>
             ) : (
@@ -209,35 +195,31 @@ function ProdutoListPage() {
                     <tr>
                       <th>Código</th>
                       <th>Nome</th>
-                      <th>Categoria</th>
-                      <th className="text-end">Preço Base</th>
-                      {/* <th>Uso (Encomendas)</th> */} {/* Contagem de uso é mais complexa */}
+                      <th>Contato</th>
+                      <th>Telefone</th>
+                      <th>E-mail</th>
+                      {/* <th>Uso (Encomendas)</th> */}
                       <th>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {produtos.map(produto => (
-                      <tr key={produto.id ?? produto.pk}>
-                        <td><strong>{produto.codigo}</strong></td>
-                        <td>
-                          <div>
-                            <strong>{produto.nome}</strong><br />
-                            <small className="text-muted">{produto.descricao?.substring(0, 50) + (produto.descricao?.length > 50 ? '...' : '')}</small>
-                          </div>
-                        </td>
-                        <td>{produto.categoria || '-'}</td>
-                        <td className="text-end">R$ {parseFloat(produto.preco_base).toFixed(2)}</td>
+                    {fornecedores.map(fornecedor => (
+                      <tr key={fornecedor.id ?? fornecedor.pk}>
+                        <td><strong>{fornecedor.codigo}</strong></td>
+                        <td><strong>{fornecedor.nome}</strong></td>
+                        <td>{fornecedor.contato || '-'}</td>
+                        <td>{fornecedor.telefone || '-'}</td>
+                        <td>{fornecedor.email ? <a href={`mailto:${fornecedor.email}`}>{fornecedor.email}</a> : '-'}</td>
                         {/* <td><span className="badge bg-primary">?</span></td> */}
                         <td>
                           <div className="btn-group btn-group-sm">
-                            <Link to={`/encomendas/nova/equipe/${equipeId}?produto_id=${produto.id ?? produto.pk}`} className="btn btn-outline-success" title="Nova Encomenda com este Produto">
+                            <Link to={`/encomendas/nova/equipe/${equipeId}?fornecedor_id=${fornecedor.id ?? fornecedor.pk}`} className="btn btn-outline-success" title="Nova Encomenda com este Fornecedor">
                               <i className="bi bi-plus-circle"></i>
                             </Link>
-                            {/* ATUALIZADO: Rota de edição correta */}
-                            <Link to={`/produtos/${produto.id ?? produto.pk}/editar/equipe/${equipeId}`} className="btn btn-outline-secondary" title="Editar Produto">
+                            <Link to={`/fornecedores/${fornecedor.id ?? fornecedor.pk}/editar/equipe/${equipeId}`} className="btn btn-outline-secondary" title="Editar Fornecedor">
                               <i className="bi bi-pencil"></i>
                             </Link>
-                            <button onClick={() => {/* TODO: Lógica de exclusão */}} className="btn btn-outline-danger" title="Excluir Produto" disabled>
+                            <button onClick={() => {/* TODO: Lógica de exclusão */}} className="btn btn-outline-danger" title="Excluir Fornecedor" disabled>
                               <i className="bi bi-trash"></i>
                             </button>
                           </div>
@@ -253,12 +235,11 @@ function ProdutoListPage() {
            {/* Paginação */}
            {totalPages > 1 && (
              <div className="card-footer d-flex justify-content-center">
-               <nav aria-label="Navegação de páginas de produtos">
+               <nav aria-label="Navegação de páginas de fornecedores">
                  <ul className="pagination mb-0">
                    <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
                      <button className="page-link" onClick={() => handlePageChange(currentPage - 1)}>&laquo;</button>
                    </li>
-                   {/* Lógica de números de página (simplificada) */}
                    {[...Array(totalPages).keys()].map(num => {
                        const pageNum = num + 1;
                        if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)) {
@@ -287,4 +268,4 @@ function ProdutoListPage() {
   );
 }
 
-export default ProdutoListPage;
+export default FornecedorListPage;

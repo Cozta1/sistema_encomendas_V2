@@ -2,9 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 
-// (Opcional) Importar componentes UI (Table, Button, Form, InputGroup, Pagination from react-bootstrap or MUI)
-
-// Constante para opções de status (pode vir da API ou ser definida aqui)
+// Constante para opções de status
 const STATUS_CHOICES = [
     { value: '', label: 'Todos os status' },
     { value: 'criada', label: 'Criada' },
@@ -26,22 +24,20 @@ function EncomendasPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Estados para filtros - inicializados pelos query params da URL
+  // Estados para filtros
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState({
     status: searchParams.get('status') || '',
-    clienteId: searchParams.get('cliente__id') || '', // Nome do parâmetro como na API
-    equipeId: searchParams.get('equipe__id') || '',   // Nome do parâmetro como na API
+    clienteId: searchParams.get('cliente__id') || '',
+    equipeId: searchParams.get('equipe__id') || '', // <-- Estado para filtro de equipe
     search: searchParams.get('search') || '',
   });
 
-  // Estado para carregar clientes (para o dropdown de filtro)
+  // Estados para carregar opções dos filtros
   const [clientesOptions, setClientesOptions] = useState([]);
   const [loadingClientes, setLoadingClientes] = useState(false);
-
-
-  const [equipesOptions, setEquipesOptions] = useState([]);
-  const [loadingEquipes, setLoadingEquipes] = useState(false);
+  const [equipesOptions, setEquipesOptions] = useState([]); // <-- NOVO ESTADO
+  const [loadingEquipes, setLoadingEquipes] = useState(false); // <-- NOVO ESTADO
 
   // --- Funções ---
 
@@ -55,52 +51,60 @@ function EncomendasPage() {
     params.append('page', page.toString());
     if (filters.status) params.append('status', filters.status);
     if (filters.clienteId) params.append('cliente__id', filters.clienteId);
-    if (filters.equipeId) params.append('equipe__id', filters.equipeId);
+    if (filters.equipeId) params.append('equipe__id', filters.equipeId); // <-- Já estava sendo enviado
     if (filters.search) params.append('search', filters.search);
-    // Adicionar ordenação se necessário: params.append('ordering', '-numero_encomenda');
+    params.append('ordering', '-numero_encomenda'); // Ordena pela mais recente
 
     // Atualiza a URL do navegador com os filtros atuais
-    setSearchParams(params);
+    setSearchParams(params, { replace: true });
 
     try {
       const response = await api.get(`/encomendas/?${params.toString()}`);
-      setEncomendas(response.data.results || []);
-      setTotalCount(response.data.count || 0);
-      // Calcula total de páginas (assumindo que a API não retorna 'total_pages')
-      const pageSize = response.data.results?.length > 0 ? response.data.results.length : 20; // Ou pegue PAGE_SIZE do settings
-      setTotalPages(Math.ceil((response.data.count || 0) / pageSize));
+      
+      const results = response.data.results || (Array.isArray(response.data) ? response.data : []);
+      const count = response.data.count || results.length;
+
+      setEncomendas(results);
+      setTotalCount(count);
+
+      // Calcula total de páginas
+      const pageSize = results.length > 0 ? results.length : 20;
+      const effectivePageSize = (pageSize === 0 && count > 0) ? 20 : (pageSize || 20);
+      setTotalPages(Math.ceil(count / effectivePageSize));
       setCurrentPage(page);
 
     } catch (err) {
       console.error('Erro ao buscar encomendas:', err);
       setError('Falha ao carregar encomendas.');
-      // Tratar erros 401/403 se necessário
     } finally {
       setLoading(false);
     }
-  }, [filters, setSearchParams]); // Depende dos filtros e da função de atualizar URL
+  }, [filters, setSearchParams]);
 
-  // Buscar dados iniciais ou quando a página muda (vinda da URL)
+  // Buscar dados iniciais ou quando a página/filtros na URL mudam
   useEffect(() => {
     const pageFromUrl = parseInt(searchParams.get('page') || '1', 10);
+    // Atualiza o estado dos filtros com base na URL
+    setFilters({
+        status: searchParams.get('status') || '',
+        clienteId: searchParams.get('cliente__id') || '',
+        equipeId: searchParams.get('equipe__id') || '',
+        search: searchParams.get('search') || '',
+    });
     fetchData(pageFromUrl);
-  }, [fetchData, searchParams]); // Re-busca se fetchData mudar ou searchParams (ex: back button)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // Re-busca quando os parâmetros da URL mudam
 
-  // Função para buscar clientes para o filtro (apenas uma vez ou quando equipe mudar)
-  // ** MELHORIA FUTURA: Usar um Select2/Autocomplete que busca dinamicamente **
+  // Função para buscar clientes para o filtro
   useEffect(() => {
     const fetchClientes = async () => {
         setLoadingClientes(true);
         try {
-            // Busca TODOS os clientes acessíveis (pode ser muitos!)
-            // Idealmente, usar um componente de busca/autocomplete aqui
-            const params = new URLSearchParams();
-            if (filters.equipeId) { // Filtra clientes se uma equipe estiver selecionada
-                params.append('equipe__id', filters.equipeId);
-            }
-             // Adicionar `page_size=all` ou um limite alto se a API suportar
-            const response = await api.get(`/clientes/?${params.toString()}`); // Endpoint de clientes
-            const options = response.data.results ? response.data.results.map(c => ({ value: c.id, label: `${c.codigo} - ${c.nome} (${c.equipe_nome})` })) : (Array.isArray(response.data) ? response.data.map(c => ({ value: c.id, label: `${c.codigo} - ${c.nome}` })) : []);
+            // Busca clientes (idealmente filtrados pela(s) equipe(s) do usuário)
+            const response = await api.get(`/clientes/?page_size=1000`); // Busca "todos"
+            const options = (response.data.results || response.data || [])
+                .map(c => ({ value: c.id, label: `${c.codigo} - ${c.nome} (${c.equipe_nome || 'N/A'})` }))
+                .sort((a, b) => a.label.localeCompare(b.label));
             setClientesOptions([{ value: '', label: 'Todos os clientes' }, ...options]);
         } catch (error) {
             console.error("Erro ao buscar clientes para filtro:", error);
@@ -110,55 +114,62 @@ function EncomendasPage() {
         }
     };
     fetchClientes();
-  }, [filters.equipeId]); // Re-busca clientes se a equipe selecionada mudar
+  }, []); // Roda só uma vez
 
-
-   
-  // Busca as equipes do usuário para o dropdown de filtro
+  // --- NOVO: Função para buscar equipes para o filtro ---
   useEffect(() => {
-    const fetchUserTeams = async () => {
+    const fetchEquipes = async () => {
         setLoadingEquipes(true);
         try {
-            // Reutiliza o endpoint que busca equipes e convites, pegando só as equipes
+            // Reutiliza o endpoint que já busca as equipes do usuário
             const response = await api.get('/my-teams-invites/');
-            // Formata para o dropdown: { value: id, label: nome }
-            const options = response.data.teams
-                ? response.data.teams.map(team => ({ value: team.id, label: team.nome }))
+            const options = response.data.teams 
+                ? response.data.teams.map(team => ({ value: team.id, label: team.nome })) 
                 : [];
-            // Adiciona a opção "Todas" no início
-            setEquipesOptions([{ value: '', label: 'Todas as minhas equipes' }, ...options]);
+            setEquipesOptions([{ value: '', label: 'Todas as equipes' }, ...options]);
         } catch (error) {
             console.error("Erro ao buscar equipes para filtro:", error);
-            setEquipesOptions([{ value: '', label: 'Erro ao carregar equipes' }]);
+            setEquipesOptions([{ value: '', label: 'Erro ao carregar' }]);
         } finally {
             setLoadingEquipes(false);
         }
     };
-    fetchUserTeams();
-}, []); // Roda apenas uma vez ao montar
-
+    fetchEquipes();
+  }, []); // Roda só uma vez
 
   // Handlers para mudança nos filtros
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
+    // Atualiza o estado local dos filtros
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
+  // Handler para aplicar os filtros
   const handleFilterSubmit = (e) => {
     e.preventDefault();
-    fetchData(1); // Volta para a primeira página ao aplicar novos filtros
+    // A função fetchData agora usará os valores do estado 'filters'
+    // e setará os searchParams, o que disparará o useEffect de busca
+    const params = new URLSearchParams();
+    params.append('page', '1'); // Reseta para página 1
+    if (filters.status) params.append('status', filters.status);
+    if (filters.clienteId) params.append('cliente__id', filters.clienteId);
+    if (filters.equipeId) params.append('equipe__id', filters.equipeId);
+    if (filters.search) params.append('search', filters.search);
+    setSearchParams(params, { replace: true });
   };
 
   const handleClearFilters = () => {
     setFilters({ status: '', clienteId: '', equipeId: '', search: '' });
-    // Limpa searchParams E inicia busca na página 1 (será pego pelo useEffect)
-    setSearchParams({ page: '1' });
+    setSearchParams({ page: '1' }, { replace: true }); // Limpa URL e reseta página
   };
 
   // Handlers para paginação
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
-      fetchData(newPage);
+      // Atualiza o 'page' nos searchParams, o que dispara o useEffect de busca
+      const params = new URLSearchParams(searchParams);
+      params.set('page', newPage.toString());
+      setSearchParams(params, { replace: true });
     }
   };
 
@@ -169,7 +180,7 @@ function EncomendasPage() {
   }
 
   // Define equipeId ativa para o botão "Nova Encomenda"
-  const activeTeamIdForNew = filters.equipeId || sessionStorage.getItem('currentTeamId');
+  const activeTeamId = filters.equipeId || sessionStorage.getItem('currentTeamId');
 
   return (
     <div>
@@ -180,26 +191,64 @@ function EncomendasPage() {
             <h1><i className="bi bi-clipboard-data me-3"></i>Encomendas</h1>
             <p className="mb-0 text-muted">Gerencie todas as encomendas acessíveis</p>
           </div>
-          {/* Botão Nova Encomenda - Tenta usar a equipe do filtro ou a da sessão */}
           <Link
-          to={activeTeamIdForNew ? `/encomendas/nova/equipe/${activeTeamIdForNew}` : '/equipes'}
-          className={`btn btn-primary ${!activeTeamIdForNew ? 'disabled' : ''}`}
-          title={!activeTeamIdForNew ? 'Selecione uma equipe nos filtros ou na lista de equipes para criar encomenda' : 'Nova Encomenda'}>
-          <i className="bi bi-plus-circle me-2"></i>Nova Encomenda
+            to={activeTeamId ? `/encomendas/nova/equipe/${activeTeamId}` : '/equipes'}
+            className={`btn btn-primary ${!activeTeamId ? 'disabled' : ''}`}
+            title={!activeTeamId ? 'Selecione uma equipe na lista de equipes ou nos filtros para criar encomenda' : 'Nova Encomenda'}
+          >
+            <i className="bi bi-plus-circle me-2"></i>Nova Encomenda
           </Link>
         </div>
       </div>
 
-      {/* Card de Filtros */}
+      {/* --- Card de Filtros ATUALIZADO --- */}
       <div className="card mb-4">
         <div className="card-body">
           <form onSubmit={handleFilterSubmit} className="row g-3 align-items-end">
-            {/* NOVO: Filtro Equipe */}
-            <div className="col-md-2"> {/* Ou ajuste o tamanho das colunas */}
+            
+            {/* Filtro Status (col-md-3) */}
+            <div className="col-lg-3 col-md-6">
+              <label htmlFor="statusFilter" className="form-label">Status</label>
+              <select
+                id="statusFilter"
+                name="status"
+                className="form-select"
+                value={filters.status}
+                onChange={handleFilterChange}
+              >
+                {STATUS_CHOICES.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Filtro Cliente (col-md-3) */}
+            <div className="col-lg-3 col-md-6">
+              <label htmlFor="clienteFilter" className="form-label">Cliente</label>
+              <select
+                id="clienteFilter"
+                name="clienteId" // Corresponde a filters.clienteId
+                className="form-select"
+                value={filters.clienteId}
+                onChange={handleFilterChange}
+                disabled={loadingClientes}
+              >
+                {loadingClientes ? (
+                    <option>Carregando...</option>
+                ) : (
+                    clientesOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                    ))
+                )}
+              </select>
+            </div>
+            
+            {/* --- NOVO FILTRO EQUIPE (col-md-2) --- */}
+            <div className="col-lg-2 col-md-6">
               <label htmlFor="equipeFilter" className="form-label">Equipe</label>
               <select
                 id="equipeFilter"
-                name="equipeId" // Nome do estado
+                name="equipeId" // Corresponde a filters.equipeId
                 className="form-select"
                 value={filters.equipeId}
                 onChange={handleFilterChange}
@@ -214,61 +263,23 @@ function EncomendasPage() {
                 )}
               </select>
             </div>
-
-
-            {/* Filtro Status */}
-            <div className="col-md-3">
-              <label htmlFor="statusFilter" className="form-label">Status</label>
-              <select
-                id="statusFilter"
-                name="status"
-                className="form-select"
-                value={filters.status}
-                onChange={handleFilterChange}
-              >
-                {STATUS_CHOICES.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
-            {/* Filtro Cliente */}
-            <div className="col-md-3">
-              <label htmlFor="clienteFilter" className="form-label">Cliente</label>
-              <select
-                id="clienteFilter"
-                name="clienteId"
-                className="form-select"
-                value={filters.clienteId}
-                onChange={handleFilterChange}
-                disabled={loadingClientes} // Desabilita enquanto carrega
-              >
-                {loadingClientes ? (
-                    <option>Carregando clientes...</option>
-                ) : (
-                    clientesOptions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                    ))
-                )}
-              </select>
-            </div>
-             {/* Filtro Equipe (Opcional, se quiser filtrar aqui também) */}
-             {/* <div className="col-md-2"> ... dropdown de equipes ... </div> */}
-
-            {/* Filtro Busca */}
-            <div className="col-md-4">
+            
+            {/* Filtro Busca (col-md-2) */}
+            <div className="col-lg-2 col-md-6">
               <label htmlFor="searchFilter" className="form-label">Buscar</label>
               <input
                 type="text"
                 id="searchFilter"
                 name="search"
                 className="form-control"
-                placeholder="Número, cliente, produto..."
+                placeholder="Número, cliente..."
                 value={filters.search}
                 onChange={handleFilterChange}
               />
             </div>
-            {/* Botões */}
-            <div className="col-md-2 d-flex">
+            
+            {/* Botões (col-md-2) */}
+            <div className="col-lg-2 col-md-12 d-flex align-items-end"> {/* Ocupa 100% no md */}
               <button type="submit" className="btn btn-primary me-2 flex-grow-1">
                 <i className="bi bi-search me-1"></i>Filtrar
               </button>
@@ -279,6 +290,7 @@ function EncomendasPage() {
           </form>
         </div>
       </div>
+      {/* --- Fim do Card de Filtros --- */}
 
       {/* Indicador de Loading e Erro */}
       {loading && <div className="text-center my-3"><span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Carregando...</div>}
@@ -322,7 +334,7 @@ function EncomendasPage() {
                     {encomendas.map((encomenda) => (
                       <tr key={encomenda.numero_encomenda}>
                         <td>
-                          <Link to={`/encomendas/${encomenda.numero_encomenda}`}> {/* Rota de detalhe a ser criada */}
+                          <Link to={`/encomendas/${encomenda.numero_encomenda}`}>
                             <strong>#{encomenda.numero_encomenda}</strong>
                           </Link>
                         </td>
@@ -335,7 +347,7 @@ function EncomendasPage() {
                         <td>
                            <div className="btn-group btn-group-sm">
                               <Link to={`/encomendas/${encomenda.numero_encomenda}`} className="btn btn-outline-primary" title="Ver Detalhes"><i className="bi bi-eye"></i></Link>
-                              <Link to={`/encomendas/${encomenda.numero_encomenda}/editar`} className="btn btn-outline-secondary" title="Editar"><i className="bi bi-pencil"></i></Link> {/* Rota a ser criada */}
+                              <Link to={`/encomendas/${encomenda.numero_encomenda}/editar`} className="btn btn-outline-secondary" title="Editar"><i className="bi bi-pencil"></i></Link>
                                {/* Adicionar botão Excluir com confirmação */}
                                <button onClick={() => {/* Lógica de exclusão */}} className="btn btn-outline-danger" title="Excluir" disabled><i className="bi bi-trash"></i></button>
                            </div>
@@ -361,7 +373,6 @@ function EncomendasPage() {
                   {/* Gerar números de página (simplificado) */}
                    {[...Array(totalPages).keys()].map(num => {
                        const pageNum = num + 1;
-                       // Lógica para mostrar apenas algumas páginas (ex: atual, +-2, primeira, última)
                        if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)) {
                            return (
                                <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
