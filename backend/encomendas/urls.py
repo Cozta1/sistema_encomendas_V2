@@ -40,11 +40,11 @@ urlpatterns = [
     path('auth/redefinir-senha/', views_auth.PasswordResetConfirmView.as_view(), name='auth_reset_confirm'),
 
     # 4. URLs de Equipes (Ações Específicas de views_auth.py)
-    path('my-teams-invites/', views_auth.MyTeamsAndInvitesView.as_view(), name='my_teams_invites'),
+    path('my-teams-invites/', views_auth.UserTeamsInvitesView.as_view(), name='my_teams_invites'),
     path('equipes/<uuid:equipe_id>/dashboard-data/', views_auth.TeamDashboardDataView.as_view(), name='team_dashboard_data'),
     path('equipes/<uuid:equipe_id>/membros/', views_auth.MembroEquipeListView.as_view(), name='team_member_list'),
     path('equipes/<uuid:equipe_id>/convidar/', views_auth.ConvidarMembroView.as_view(), name='team_invite'),
-    path('convites/<uuid:convite_id>/aceitar/', views_auth.AceitarConviteView.as_view(), name='invite_accept'),
+    path('convites/<uuid:convite_id>/aceitar/', views_auth.AcceptInviteView.as_view(), name='invite_accept'),
     path('equipes/<uuid:equipe_id>/alterar-papel/<int:membro_id>/', views_auth.AlterarPapelMembroView.as_view(), name='alterar_papel_membro'),
     path('equipes/<uuid:equipe_id>/remover/<int:membro_id>/', views_auth.RemoverMembroView.as_view(), name='remover_membro'),
     path('equipes/<uuid:equipe_id>/sair/', views_auth.SairEquipeView.as_view(), name='sair_equipe'),

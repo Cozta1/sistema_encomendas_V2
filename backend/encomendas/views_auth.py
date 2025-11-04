@@ -47,7 +47,12 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated # Para proteger a view
 
 # Importe os serializers que usaremos
-from .serializers import EquipeSerializer, ConviteEquipeSerializer, MembroEquipeSerializer
+from .serializers import (
+    UserSerializer, EquipeSerializer, ConviteEquipeSerializer, 
+    MembroEquipeSerializer, ChangePasswordSerializer, 
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+)
+
 # Importe os modelos
 from .models import MembroEquipe, ConviteEquipe, Equipe # Garanta que Equipe está importado
 
@@ -704,6 +709,161 @@ class UserRegisterView(generics.CreateAPIView):
             headers=headers
         )
     
+# (Cole isto em views_auth.py, por volta da linha 831)
+
+class UserDetailView(APIView):
+    """
+    Endpoint para obter/atualizar os detalhes do usuário logado.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserSerializer # Agora o serializer está importado
+
+    def get(self, request, *args, **kwargs):
+        """ Retorna os dados do usuário logado. """
+        serializer = self.serializer_class(request.user, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, *args, **kwargs):
+        """ Atualiza dados parciais do usuário logado. """
+        user = request.user
+        # O 'partial=True' permite atualizações parciais (PATCH)
+        serializer = self.serializer_class(user, data=request.data, partial=True, context={'request': request})
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+# (Cole isto após a classe UserDetailView)
+
+class ChangePasswordView(APIView):
+    """
+    Endpoint para o usuário logado alterar a própria senha.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
+
+    def post(self, request, *args, **kwargs):
+        # Passa o contexto (request) para o serializer
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        
+        if serializer.is_valid():
+            user = request.user
+            senha_atual = serializer.validated_data.get('senha_atual')
+            
+            # 1. Verifica a senha atual
+            if not user.check_password(senha_atual):
+                return Response(
+                    {'senha_atual': ['A senha atual está incorreta.']}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 2. Define a nova senha (o serializer já validou 'nova_senha' e 'confirmar_nova_senha')
+            nova_senha = serializer.validated_data.get('nova_senha')
+            user.set_password(nova_senha)
+            user.save()
+            
+            # 3. Atualiza a sessão para manter o usuário logado
+            update_session_auth_hash(request, user) 
+            
+            return Response({'detail': 'Senha alterada com sucesso.'}, status=status.HTTP_200_OK)
+        
+        # Retorna os erros de validação (ex: senhas não coincidem)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# (Cole isto após a classe ChangePasswordView)
+
+class PasswordResetRequestView(APIView):
+    """
+    Endpoint para solicitar um email de redefinição de senha.
+    Acessível por qualquer pessoa (não requer autenticação).
+    """
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PasswordResetRequestSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid():
+            email = serializer.validated_data.get('email')
+            
+            try:
+                usuario = Usuario.objects.get(email__iexact=email, ativo=True)
+                
+                # Gerar token (método do seu modelo Usuario)
+                token = usuario.gerar_token_reset() 
+                
+                # Enviar email (usando a função já existente no views_auth.py)
+                enviar_email_reset_senha(request._request, usuario, token) 
+
+            except Usuario.DoesNotExist:
+                # Não informe ao usuário se o email foi encontrado ou não
+                # por motivos de segurança (enumeração de email).
+                pass
+            except Exception as e:
+                # Logar o erro de envio de email, mas não falhar a requisição
+                print(f"Erro ao enviar email de reset para {email}: {e}")
+
+            # Sempre retorne sucesso para não vazar informações
+            return Response(
+                {'detail': 'Se um usuário com este email existir, um link de redefinição de senha foi enviado.'}, 
+                status=status.HTTP_200_OK
+            )
+        
+        # Retorna erros de validação (ex: email mal formatado)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# (Cole isto após a classe PasswordResetRequestView)
+
+class PasswordResetConfirmView(APIView):
+    """
+    Endpoint para confirmar a redefinição de senha com o token.
+    Acessível por qualquer pessoa.
+    """
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid():
+            # Embora o serializer padrão do Django use uidb64,
+            # seu modelo personalizado e
+            # sua view HTML (linha 213)
+            # usam um token UUID simples. Vamos usar essa lógica.
+            
+            token = serializer.validated_data.get('token')
+            nova_senha = serializer.validated_data.get('nova_senha')
+
+            try:
+                usuario = Usuario.objects.get(token_reset_senha=token, ativo=True)
+                
+                # Verifica se o token expirou (método do seu modelo)
+                if not usuario.token_reset_valido():
+                    return Response(
+                        {'token': ['Este link de redefinição de senha expirou ou é inválido.']}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except Usuario.DoesNotExist:
+                return Response(
+                    {'token': ['Link de redefinição de senha inválido ou usuário inativo.']}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Se o token for válido, redefine a senha
+            usuario.set_password(nova_senha)
+            usuario.limpar_token_reset() # Método do seu modelo
+            usuario.save()
+            
+            return Response({'detail': 'Sua senha foi redefinida com sucesso. Você pode fazer login.'}, status=status.HTTP_200_OK)
+        
+        # Retorna erros do serializer (ex: senhas não coincidem)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 # --- API View para Listar Equipes e Convites do Usuário ---
@@ -1007,3 +1167,286 @@ class ConviteViewSet(viewsets.ModelViewSet):
         convite.save()
         
         return Response({'detail': 'Convite recusado.'}, status=status.HTTP_200_OK)
+
+
+# (Cole isto no final de views_auth.py)
+
+class MembroEquipeListView(generics.ListAPIView):
+    """
+    Endpoint (API) para listar os membros de uma equipe específica.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MembroEquipeSerializer
+
+    def get_queryset(self):
+        """
+        Filtra para retornar apenas membros da equipe especificada na URL (equipe_id).
+        Também verifica se o usuário logado tem permissão (é membro) para ver esta lista.
+        """
+        user = self.request.user
+        # Pega o 'equipe_id' da URL (definido no urls.py)
+        equipe_id = self.kwargs.get('equipe_id')
+
+        if not equipe_id:
+            return MembroEquipe.objects.none()
+
+        try:
+            # 1. Busca a equipe
+            equipe = Equipe.objects.get(id=equipe_id)
+            
+            # 2. Verifica se o usuário logado é membro desta equipe
+            if not equipe.eh_membro(user):
+                 # Se não for, ele não pode ver a lista de membros
+                 raise permissions.PermissionDenied("Você não tem permissão para ver os membros desta equipe.")
+
+            # 3. Retorna a lista de membros da equipe
+            return MembroEquipe.objects.filter(equipe=equipe).select_related('usuario').order_by('usuario__nome_completo')
+
+        except (Equipe.DoesNotExist, ValueError):
+            # Se o UUID for inválido ou a equipe não existir
+            raise Http404("Equipe não encontrada.")
+        
+# (Cole isto no final de views_auth.py)
+
+class ConvidarMembroView(generics.CreateAPIView):
+    """
+    Endpoint (API) para administradores/gerentes convidarem um novo membro
+    para uma equipe específica (passada na URL).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ConviteEquipeSerializer # Reutiliza o serializer de convite
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        # Pega o 'equipe_id' da URL (definido no urls.py)
+        equipe_id = self.kwargs.get('equipe_id')
+
+        try:
+            # 1. Validar a Equipe
+            equipe = Equipe.objects.get(id=equipe_id)
+        except (Equipe.DoesNotExist, ValueError):
+            # Usar serializers.ValidationError para retornar um 400 amigável
+            raise serializers.ValidationError({"detail": "Equipe não encontrada."})
+
+        # 2. Verificar permissão (Admin/Gerente)
+        membro_atual = equipe.get_membro(user)
+        if not membro_atual or membro_atual.papel == 'leitor':
+             raise permissions.PermissionDenied("Você não tem permissão para convidar membros para esta equipe.")
+
+        # 3. Validar o Papel (Gerente não pode convidar Admin)
+        papel_convite = serializer.validated_data.get('papel')
+        if papel_convite == 'administrador' and membro_atual.papel != 'administrador':
+            raise permissions.PermissionDenied("Apenas o administrador principal pode convidar outros administradores.")
+
+        # 4. Validar o Email (Já é membro? Já foi convidado?)
+        email_convidado = serializer.validated_data.get('email')
+        if MembroEquipe.objects.filter(equipe=equipe, usuario__email__iexact=email_convidado).exists():
+             raise serializers.ValidationError(f"O usuário com email {email_convidado} já é membro desta equipe.")
+        
+        if ConviteEquipe.objects.filter(equipe=equipe, email__iexact=email_convidado, status='pendente').exists():
+             raise serializers.ValidationError(f"Já existe um convite pendente para {email_convidado} nesta equipe.")
+
+        # 5. Salvar o convite associado à equipe da URL e ao usuário logado
+        try:
+            convite = serializer.save(equipe=equipe, convidado_por=user)
+            
+            # (Opcional) Enviar email, assim como a view HTML faz
+            try:
+                 enviar_email_convite_equipe(self.request._request, convite)
+            except Exception as e:
+                 print(f"API ConvidarMembroView: Erro ao enviar email: {e}")
+                 # Não falhar a requisição se o email falhar
+            
+        except Exception as e:
+            raise serializers.ValidationError(f"Erro ao salvar convite: {e}")
+        
+# (Cole isto no final de views_auth.py)
+
+class AlterarPapelMembroView(generics.UpdateAPIView):
+    """
+    Endpoint (API) para administradores alterarem o papel de um membro
+    dentro de uma equipe específica.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MembroEquipeSerializer
+    queryset = MembroEquipe.objects.all()
+    
+    # Define o campo que será usado para buscar o objeto na URL
+    # (Neste caso, o 'membro_id' da URL)
+    lookup_field = 'id' 
+    lookup_url_kwarg = 'membro_id'
+
+    def get_queryset(self):
+        """
+        Filtra o queryset para garantir que o membro_id pertença ao equipe_id da URL.
+        """
+        equipe_id = self.kwargs.get('equipe_id')
+        membro_id = self.kwargs.get('membro_id')
+        
+        if not equipe_id or not membro_id:
+            return MembroEquipe.objects.none()
+
+        # Retorna apenas o membro específico dentro da equipe específica
+        return MembroEquipe.objects.filter(
+            equipe_id=equipe_id, 
+            id=membro_id
+        )
+
+    def update(self, request, *args, **kwargs):
+        """
+        Sobrescreve o método update para adicionar validações de permissão.
+        """
+        user = request.user
+        
+        try:
+            equipe_id = self.kwargs.get('equipe_id')
+            equipe = Equipe.objects.get(id=equipe_id)
+        except (Equipe.DoesNotExist, ValueError):
+            raise Http404("Equipe não encontrada.")
+
+        # 1. Verificar se o usuário que faz o request pode gerenciar a equipe
+        membro_atual = equipe.get_membro(user)
+        if not membro_atual or membro_atual.papel == 'leitor':
+             raise permissions.PermissionDenied("Você não tem permissão para alterar papéis nesta equipe.")
+        
+        # 2. Obter o membro-alvo
+        membro_alvo = self.get_object() # Isso usa o get_queryset()
+        
+        if not membro_alvo:
+            raise Http404("Membro não encontrado nesta equipe.")
+
+        # 3. Validar se o alvo é o admin principal
+        if membro_alvo.usuario == equipe.administrador:
+             raise permissions.PermissionDenied("Não é possível alterar o papel do administrador principal.")
+
+        # 4. Validar se o usuário atual está tentando promover alguém a admin
+        novo_papel = request.data.get('papel')
+        if novo_papel == 'administrador' and membro_atual.papel != 'administrador':
+            raise permissions.PermissionDenied("Apenas o administrador principal pode definir outros administradores.")
+
+        # Se passou nas validações, permite a atualização (partial=True)
+        return super().update(request, *args, partial=True, **kwargs)
+    
+
+# (Cole isto no final de views_auth.py)
+
+class RemoverMembroView(generics.DestroyAPIView):
+    """
+    Endpoint (API) para administradores/gerentes removerem (expulsarem)
+    outro membro de uma equipe.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = MembroEquipe.objects.all()
+    lookup_field = 'id'
+    lookup_url_kwarg = 'membro_id'
+
+    def get_queryset(self):
+        """
+        Filtra para garantir que o membro_id pertença ao equipe_id da URL.
+        """
+        equipe_id = self.kwargs.get('equipe_id')
+        membro_id = self.kwargs.get('membro_id')
+        
+        if not equipe_id or not membro_id:
+            return MembroEquipe.objects.none()
+
+        # Retorna apenas o membro específico dentro da equipe específica
+        return MembroEquipe.objects.filter(
+            equipe_id=equipe_id, 
+            id=membro_id
+        )
+
+    def check_permissions(self, request):
+        """
+        Adiciona validação de permissão antes de permitir o delete.
+        """
+        super().check_permissions(request) # Verifica IsAuthenticated
+        
+        user = request.user
+        
+        try:
+            membro_alvo = self.get_object() # Membro a ser removido
+        except Http404:
+             raise Http404("Membro não encontrado nesta equipe.")
+
+        equipe = membro_alvo.equipe 
+
+        # 1. Verificar se o usuário que faz o request pode gerenciar a equipe
+        # (Usa o método .get_membro() do modelo Equipe)
+        membro_atual = equipe.get_membro(user)
+        if not membro_atual or membro_atual.papel == 'leitor':
+            raise permissions.PermissionDenied("Você não tem permissão para remover membros desta equipe.")
+
+        # 2. Validar se o alvo é o próprio usuário
+        if membro_alvo.usuario == user:
+            raise permissions.PermissionDenied("Você não pode remover a si mesmo. Use a rota 'sair-equipe'.")
+
+        # 3. Validar se o alvo é o admin principal
+        if membro_alvo.usuario == equipe.administrador:
+            raise permissions.PermissionDenied("O administrador principal não pode ser removido da equipe.")
+
+    def perform_destroy(self, instance):
+        """
+        Executa a lógica de delete após as permissões serem verificadas.
+        """
+        # (Logging opcional)
+        # print(f"Usuário {self.request.user} removendo {instance.usuario} da equipe {instance.equipe}")
+        instance.delete()
+
+# (Cole isto no final de views_auth.py)
+
+class SairEquipeView(APIView):
+    """
+    Endpoint (API) para o usuário logado sair de uma equipe.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, equipe_id, *args, **kwargs):
+        """
+        Manipula a solicitação POST para sair da equipe.
+        """
+        user = request.user
+        
+        try:
+            # 1. Validar a Equipe e se o usuário é membro
+            equipe = Equipe.objects.get(id=equipe_id)
+            membro = MembroEquipe.objects.get(equipe=equipe, usuario=user)
+            
+        except (Equipe.DoesNotExist, MembroEquipe.DoesNotExist, ValueError):
+            return Response(
+                {'detail': 'Equipe não encontrada ou você não é membro desta equipe.'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 2. Verificar se é o último administrador (lógica de 'sair_equipe')
+        if equipe.eh_administrador(user):
+            num_outros_admins = MembroEquipe.objects.filter(
+                equipe=equipe,
+                papel='administrador'
+            ).exclude(usuario=user).count()
+
+            if num_outros_admins == 0:
+                return Response(
+                    {'detail': 'Você é o único administrador. Transfira a administração (promova outro membro) antes de sair.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # 3. Sair da equipe
+        try:
+            nome_equipe = equipe.nome
+            membro.delete()
+            
+            # Opcional: Limpar a equipe_ativa_id se a equipe que ele saiu era a ativa
+            if user.equipe_ativa_id == equipe.id:
+                user.equipe_ativa = None
+                user.save()
+
+            return Response(
+                {'detail': f'Você saiu da equipe "{nome_equipe}".'}, 
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {'detail': f'Ocorreu um erro ao tentar sair da equipe: {e}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
