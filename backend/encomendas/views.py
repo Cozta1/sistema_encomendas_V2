@@ -294,7 +294,7 @@ class ClienteViewSet(BaseEquipeFilteredViewSet):
 
 class ProdutoViewSet(BaseEquipeFilteredViewSet):
     """API endpoint para Produtos, filtrado por equipes."""
-    queryset = Cliente.objects.all()  # <-- ADICIONE ESTA LINHA
+    queryset = Produto.objects.all()  # <-- ADICIONE ESTA LINHA
     serializer_class = ProdutoSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['categoria']
@@ -305,7 +305,7 @@ class ProdutoViewSet(BaseEquipeFilteredViewSet):
 
 class FornecedorViewSet(BaseEquipeFilteredViewSet):
     """API endpoint para Fornecedores, filtrado por equipes."""
-    queryset = Cliente.objects.all()  # <-- ADICIONE ESTA LINHA
+    queryset = Fornecedor.objects.all()  # <-- ADICIONE ESTA LINHA
     serializer_class = FornecedorSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['nome', 'codigo', 'contato', 'email', 'telefone']
@@ -316,7 +316,7 @@ class FornecedorViewSet(BaseEquipeFilteredViewSet):
 # --- ViewSet para Entrega (ReadOnly) ---
 class EntregaViewSet(viewsets.ReadOnlyModelViewSet):
     """API endpoint para visualizar Entregas."""
-    queryset = Cliente.objects.all()  # <-- ADICIONE ESTA LINHA
+    queryset = Entrega.objects.all()  # <-- ADICIONE ESTA LINHA
     serializer_class = EntregaSerializer
     permission_classes = [permissions.IsAuthenticated]
 

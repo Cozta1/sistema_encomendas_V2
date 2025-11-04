@@ -3,6 +3,8 @@
 """
 Views para autenticação e gerenciamento de equipes
 """
+from rest_framework.decorators import action
+from argparse import Action
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
@@ -55,7 +57,9 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count
 from .models import Equipe, Encomenda # Importe Encomenda
 from .serializers import EncomendaSerializer # Importe EncomendaSerializer (ou um mais simples)
-import uuid # Para validar UUID
+import uuid
+
+from . import serializers # Para validar UUID
 
 # --- Other views (registro, logout_view, solicitar_reset_senha, etc.) remain the same ---
 
@@ -892,3 +896,114 @@ class EquipeViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+    
+
+class ConviteViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint para gerenciar convites de equipe (listar, criar, aceitar, recusar).
+    """
+    serializer_class = ConviteEquipeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Filtra convites para mostrar:
+        1. Convites *enviados* pela equipe ativa (se admin).
+        2. Convites *recebidos* pelo email do usuário (pendentes).
+        """
+        user = self.request.user
+        
+        # Convites recebidos (pendentes) pelo usuário
+        query_recebidos = ConviteEquipe.objects.filter(email=user.email, status='pendente')
+        
+        # Convites enviados pela equipe ativa (apenas para admins)
+        equipe_ativa_id = user.equipe_ativa_id
+        if not equipe_ativa_id:
+            return query_recebidos.order_by('-criado_em')
+
+        try:
+            membro = MembroEquipe.objects.get(usuario=user, equipe_id=equipe_ativa_id)
+            
+            if membro.papel == 'administrador':
+                # Admins veem todos os convites da equipe
+                query_enviados = ConviteEquipe.objects.filter(equipe_id=equipe_ativa_id)
+                return (query_enviados | query_recebidos).distinct().order_by('-criado_em')
+            
+        except MembroEquipe.DoesNotExist:
+            pass # Se não for membro, ou equipe não existir, só retorna os recebidos
+
+        return query_recebidos.order_by('-criado_em')
+
+    def perform_create(self, serializer):
+        """
+        Define a equipe e o 'convidado_por' ao criar um convite.
+        Apenas Admins da equipe ativa podem criar.
+        """
+        user = self.request.user
+        equipe_ativa_id = user.equipe_ativa_id
+        
+        if not equipe_ativa_id:
+            raise serializers.ValidationError("Você precisa ter uma equipe ativa para enviar convites.")
+        
+        try:
+            equipe_ativa = Equipe.objects.get(id=equipe_ativa_id)
+            membro = MembroEquipe.objects.get(usuario=user, equipe=equipe_ativa)
+            
+            if membro.papel != 'administrador':
+                 raise permissions.PermissionDenied("Apenas administradores podem enviar convites.")
+
+            email_convidado = serializer.validated_data.get('email')
+            if MembroEquipe.objects.filter(equipe=equipe_ativa, usuario__email=email_convidado).exists():
+                 raise serializers.ValidationError(f"O usuário com email {email_convidado} já é membro desta equipe.")
+            
+            if ConviteEquipe.objects.filter(equipe=equipe_ativa, email=email_convidado, status='pendente').exists():
+                 raise serializers.ValidationError(f"Já existe um convite pendente para {email_convidado} nesta equipe.")
+
+            serializer.save(equipe=equipe_ativa, convidado_por=user)
+
+        except (Equipe.DoesNotExist, MembroEquipe.DoesNotExist):
+            raise permissions.PermissionDenied("Você não pertence à equipe ativa ou a equipe não existe.")
+        except Exception as e:
+            raise serializers.ValidationError(f"Erro ao criar convite: {e}")
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def aceitar(self, request, pk=None):
+        """
+        Ação customizada para um usuário aceitar um convite.
+        """
+        convite = self.get_object()
+        user = request.user
+
+        if convite.email != user.email:
+            return Response({'detail': 'Este convite não é para você.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        if convite.status != 'pendente':
+            return Response({'detail': f'Este convite não pode mais ser aceito (status: {convite.status}).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            convite.equipe.adicionar_membro(user, convite.papel)
+            convite.status = 'aceito'
+            convite.save()
+            return Response({'detail': f'Bem-vindo à equipe {convite.equipe.nome}!'}, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({'detail': f'Erro ao aceitar convite: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def recusar(self, request, pk=None):
+        """
+        Ação customizada para um usuário recusar um convite.
+        """
+        convite = self.get_object()
+        user = request.user
+
+        if convite.email != user.email:
+            return Response({'detail': 'Este convite não é para você.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        if convite.status != 'pendente':
+            return Response({'detail': f'Este convite não está mais pendente (status: {convite.status}).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        convite.status = 'recusado'
+        convite.save()
+        
+        return Response({'detail': 'Convite recusado.'}, status=status.HTTP_200_OK)

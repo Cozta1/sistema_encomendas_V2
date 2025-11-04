@@ -33,8 +33,8 @@ urlpatterns = [
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # 3. URLs de Autenticação (Customizadas de views_auth.py)
-    path('auth/register/', views_auth.RegisterView.as_view(), name='auth_register'),
-    path('auth/user/', views_auth.UserProfileView.as_view(), name='auth_user_profile'),
+    path('auth/register/', views_auth.UserRegisterView.as_view(), name='auth_register'),
+    path('auth/user/', views_auth.UserDetailView.as_view(), name='auth_user_profile'),
     path('auth/alterar-senha/', views_auth.ChangePasswordView.as_view(), name='auth_change_password'),
     path('auth/solicitar-reset-senha/', views_auth.PasswordResetRequestView.as_view(), name='auth_reset_request'),
     path('auth/redefinir-senha/', views_auth.PasswordResetConfirmView.as_view(), name='auth_reset_confirm'),

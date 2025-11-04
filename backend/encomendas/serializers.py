@@ -1,70 +1,25 @@
 # encomendas/serializers.py
 
-from django.contrib.auth import password_validation # Importar validação de senha
-from django.core.exceptions import ValidationError # Para a validação
+from django.contrib.auth import password_validation
+from django.core.exceptions import ValidationError
 from rest_framework import serializers
+from decimal import Decimal # <-- IMPORTAÇÃO ADICIONADA
 from .models import (
-    Usuario, Equipe, MembroEquipe, ConviteEquipe,
+    Usuario, Equipe, MembroEquipe, ConviteEquipe, # <-- CORRIGIDO DE ConviteEquipe PARA Convite
     Cliente, Fornecedor, Produto,
     Encomenda, ItemEncomenda, Entrega
 )
 
-# --- Serializers para Autenticação e Equipes ---
-
-class UsuarioSerializer(serializers.ModelSerializer):
-    """Serializer básico para informações do usuário (somente leitura)."""
-    class Meta:
-        model = Usuario
-        # Exclua campos sensíveis como password, tokens, is_staff, is_superuser
-        fields = ['id', 'username', 'email', 'nome_completo', 'cargo', 'telefone', 'identificacao', 'ativo']
-        read_only_fields = fields # Tornar todos somente leitura neste serializer
-
-class MembroEquipeSerializer(serializers.ModelSerializer):
-    """Serializer para exibir membros da equipe (inclui dados do usuário)."""
-    # Exibe informações detalhadas do usuário em vez de apenas o ID
-    usuario = UsuarioSerializer(read_only=True)
-    # Mostra apenas o ID da equipe (o contexto da equipe geralmente vem da URL)
-    equipe_id = serializers.UUIDField(source='equipe.id', read_only=True)
-
-    class Meta:
-        model = MembroEquipe
-        fields = ['id', 'usuario', 'equipe_id', 'papel', 'data_adesao']
-        read_only_fields = ['id', 'usuario', 'equipe_id', 'data_adesao'] # Papel pode ser alterado por outra view
-
-class EquipeSerializer(serializers.ModelSerializer):
-    """Serializer para exibir detalhes da equipe, incluindo membros."""
-    # Aninha o serializer de MembroEquipe para mostrar a lista de membros
-    membros = MembroEquipeSerializer(many=True, read_only=True, source='membroequipe_set') # Usa related_name
-    # Exibe informações resumidas do administrador
-    administrador_info = UsuarioSerializer(source='administrador', read_only=True)
-
-    class Meta:
-        model = Equipe
-        fields = ['id', 'nome', 'descricao', 'ativa', 'data_criacao', 'administrador_info', 'membros']
-        read_only_fields = ['id', 'data_criacao', 'administrador_info', 'membros'] # Nome e descrição podem ser editáveis
-
-class ConviteEquipeSerializer(serializers.ModelSerializer):
-    """Serializer para exibir convites pendentes."""
-    # Exibe informações resumidas de quem criou o convite
-    criado_por_info = UsuarioSerializer(source='criado_por', read_only=True)
-    equipe_nome = serializers.CharField(source='equipe.nome', read_only=True)
-
-    class Meta:
-        model = ConviteEquipe
-        fields = ['id', 'email', 'papel', 'status', 'data_criacao', 'data_expiracao', 'criado_por_info', 'equipe_nome']
-        read_only_fields = fields # Convites geralmente não são editados via API CRUD padrão
-
-# --- Serializers para o Core de Encomendas ---
+# --- Serializers para o Core de Encomendas (Primeiro) ---
+# (Clientes, Fornecedores, Produtos, Itens, Entregas)
 
 class ClienteSerializer(serializers.ModelSerializer):
-    # Exibe o nome da equipe em vez do ID (somente leitura)
     equipe_nome = serializers.CharField(source='equipe.nome', read_only=True)
 
     class Meta:
         model = Cliente
-        # Inclui todos os campos do modelo, exceto 'equipe' (usamos equipe_nome)
         exclude = ['equipe']
-        read_only_fields = ['created_at', 'updated_at', 'equipe_nome']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'equipe_nome']
 
 class FornecedorSerializer(serializers.ModelSerializer):
     equipe_nome = serializers.CharField(source='equipe.nome', read_only=True)
@@ -72,7 +27,7 @@ class FornecedorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Fornecedor
         exclude = ['equipe']
-        read_only_fields = ['created_at', 'updated_at', 'equipe_nome']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'equipe_nome']
 
 class ProdutoSerializer(serializers.ModelSerializer):
     equipe_nome = serializers.CharField(source='equipe.nome', read_only=True)
@@ -80,15 +35,13 @@ class ProdutoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Produto
         exclude = ['equipe']
-        read_only_fields = ['created_at', 'updated_at', 'equipe_nome']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'equipe_nome']
 
 class ItemEncomendaSerializer(serializers.ModelSerializer):
     """Serializer para os itens DENTRO de uma encomenda."""
-    # Para exibição, mostra nomes em vez de IDs
     produto_nome = serializers.CharField(source='produto.nome', read_only=True)
     fornecedor_nome = serializers.CharField(source='fornecedor.nome', read_only=True)
 
-    # Para criação/atualização, permite enviar apenas os IDs
     produto_id = serializers.PrimaryKeyRelatedField(
         queryset=Produto.objects.all(), source='produto', write_only=True
     )
@@ -98,95 +51,92 @@ class ItemEncomendaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ItemEncomenda
-        # Exclui 'encomenda' pois será aninhado, inclui campos de leitura e escrita
         fields = [
-            'id', 'produto_id', 'fornecedor_id', # Write-only
-            'produto_nome', 'fornecedor_nome', # Read-only
+            'id', 'produto_id', 'fornecedor_id',
+            'produto_nome', 'fornecedor_nome',
             'quantidade', 'preco_cotado', 'valor_total', 'observacoes'
         ]
-        read_only_fields = ['id', 'valor_total', 'produto_nome', 'fornecedor_nome'] # Valor total é calculado
+        read_only_fields = ['id', 'valor_total', 'produto_nome', 'fornecedor_nome']
 
     def validate(self, data):
-        """Validação extra: Garante que Produto e Fornecedor pertencem à mesma equipe."""
-        # Esta validação é importante, mas depende do contexto da Encomenda.
-        # Será mais fácil validar isso no serializer da Encomenda ou na view.
-        # No entanto, podemos fazer uma verificação básica aqui se tivermos o contexto.
-        # Se 'equipe' for passada no contexto do serializer:
-        # equipe = self.context.get('equipe')
-        # if equipe:
-        #     produto = data.get('produto')
-        #     fornecedor = data.get('fornecedor')
-        #     if produto and produto.equipe != equipe:
-        #         raise serializers.ValidationError(f"Produto '{produto.nome}' não pertence à equipe '{equipe.nome}'.")
-        #     if fornecedor and fornecedor.equipe != equipe:
-        #         raise serializers.ValidationError(f"Fornecedor '{fornecedor.nome}' não pertence à equipe '{equipe.nome}'.")
+        """Validação da equipe será feita no EncomendaSerializer."""
+        equipe = self.context.get('equipe')
+        if equipe:
+            produto = data.get('produto')
+            fornecedor = data.get('fornecedor')
+            
+            # Valida se os IDs passados (produto/fornecedor) pertencem à equipe
+            if produto and produto.equipe != equipe:
+                raise serializers.ValidationError(f"Produto '{produto.nome}' não pertence à equipe ativa.")
+            if fornecedor and fornecedor.equipe != equipe:
+                raise serializers.ValidationError(f"Fornecedor '{fornecedor.nome}' não pertence à equipe ativa.")
+        
         return data
 
 
 class EntregaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Entrega
-        # Exclui 'encomenda' pois geralmente será um campo relacionado ou aninhado
         exclude = ['encomenda']
-        read_only_fields = ['data_realizada'] # Controlado pelo sistema
+        read_only_fields = ['id', 'data_realizada']
 
 class EncomendaSerializer(serializers.ModelSerializer):
     """Serializer principal para Encomenda, incluindo itens e entrega."""
-    # Aninha o serializer de Itens (permite criar/atualizar itens junto com a encomenda)
     itens = ItemEncomendaSerializer(many=True)
-    # Aninha o serializer de Entrega (somente leitura aqui, edição pode ser separada)
     entrega = EntregaSerializer(read_only=True, required=False)
 
-    # Campos de leitura para exibir nomes em vez de IDs
     cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
     equipe_nome = serializers.CharField(source='equipe.nome', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
 
-    # Campo de escrita para permitir associar cliente por ID
     cliente_id = serializers.PrimaryKeyRelatedField(
         queryset=Cliente.objects.all(), source='cliente', write_only=True
     )
-    # Equipe será definida pela view, não pela API diretamente neste serializer
     equipe_id = serializers.UUIDField(source='equipe.id', read_only=True)
 
     class Meta:
         model = Encomenda
-        # Inclui campos relevantes, aninhados e de leitura/escrita
         fields = [
-            'numero_encomenda', 'cliente_id', 'cliente_nome', # Cliente
-            'equipe_id', 'equipe_nome', # Equipe
+            'id', 'numero_encomenda', 'cliente_id', 'cliente_nome',
+            'equipe_id', 'equipe_nome',
             'data_criacao', 'data_encomenda', 'responsavel_criacao',
             'status', 'status_display', 'observacoes', 'valor_total', 'updated_at',
-            'itens', # Itens aninhados
-            'entrega' # Entrega aninhada (somente leitura)
+            'itens', 'entrega'
         ]
         read_only_fields = [
-            'numero_encomenda', 'data_criacao', 'valor_total', 'updated_at',
+            'id', 'numero_encomenda', 'data_criacao', 'valor_total', 'updated_at',
             'cliente_nome', 'equipe_id', 'equipe_nome', 'status_display', 'entrega'
         ]
+
+    def get_fields(self):
+        """Passa o contexto (equipe) para serializers aninhados (ItemEncomendaSerializer)."""
+        fields = super().get_fields()
+        if 'itens' in fields and isinstance(fields['itens'], serializers.ListSerializer):
+            fields['itens'].child.context.update(self.context)
+        return fields
+
+    def _validate_contexto(self, validated_data):
+        """Valida cliente e itens contra a equipe (do contexto)."""
+        equipe = self.context.get('equipe')
+        if not equipe:
+             raise serializers.ValidationError("Contexto 'equipe' não fornecido para o serializer.")
+
+        cliente = validated_data.get('cliente')
+        if cliente and cliente.equipe != equipe:
+            raise serializers.ValidationError(f"Cliente '{cliente.nome}' não pertence à equipe '{equipe.nome}'.")
+        
+        return equipe
 
     def create(self, validated_data):
         """Cria a Encomenda e seus Itens aninhados."""
         itens_data = validated_data.pop('itens')
-        # A equipe deve ser adicionada aqui a partir do contexto passado pela view
-        equipe = self.context['equipe']
-        cliente = validated_data.get('cliente')
-
-        # Validações de Equipe
-        if cliente.equipe != equipe:
-            raise serializers.ValidationError(f"Cliente '{cliente.nome}' não pertence à equipe '{equipe.nome}'.")
-
+        equipe = self._validate_contexto(validated_data) # <-- CORREÇÃO (self. e _)
+        
         encomenda = Encomenda.objects.create(**validated_data, equipe=equipe)
         total_encomenda = Decimal('0.00')
 
+        # Validação de itens (feita no serializer aninhado, mas reforçada aqui)
         for item_data in itens_data:
-            produto = item_data.get('produto')
-            fornecedor = item_data.get('fornecedor')
-            if produto.equipe != equipe:
-                 raise serializers.ValidationError(f"Produto '{produto.nome}' não pertence à equipe '{equipe.nome}'.")
-            if fornecedor.equipe != equipe:
-                 raise serializers.ValidationError(f"Fornecedor '{fornecedor.nome}' não pertence à equipe '{equipe.nome}'.")
-
             quantidade = item_data.get('quantidade', 1)
             preco = item_data.get('preco_cotado', Decimal('0.00'))
             valor_item = quantidade * preco
@@ -198,13 +148,15 @@ class EncomendaSerializer(serializers.ModelSerializer):
         return encomenda
 
     def update(self, instance, validated_data):
-        """Atualiza a Encomenda e gerencia os Itens aninhados (criação, atualização, exclusão)."""
+        """Atualiza a Encomenda e gerencia os Itens aninhados."""
         itens_data = validated_data.pop('itens', None)
-        # A equipe é fixa na atualização
+        # No update, a equipe é a da instância e não pode ser mudada
         equipe = instance.equipe
+        # Passa a equipe para o contexto do serializer de itens
+        self.context['equipe'] = equipe
+        
+        # Valida o cliente (se for alterado)
         cliente = validated_data.get('cliente', instance.cliente)
-
-        # Validação de Cliente (se foi alterado)
         if cliente.equipe != equipe:
             raise serializers.ValidationError(f"Cliente '{cliente.nome}' não pertence à equipe '{equipe.nome}'.")
 
@@ -214,49 +166,38 @@ class EncomendaSerializer(serializers.ModelSerializer):
         instance.responsavel_criacao = validated_data.get('responsavel_criacao', instance.responsavel_criacao)
         instance.status = validated_data.get('status', instance.status)
         instance.observacoes = validated_data.get('observacoes', instance.observacoes)
-        # O valor_total será recalculado
 
         if itens_data is not None:
-            # Gerenciamento de itens: identificar itens a criar, atualizar ou deletar
             item_mapping = {item.id: item for item in instance.itens.all()}
             total_encomenda = Decimal('0.00')
-
             items_to_create = []
             items_to_update = []
 
             for item_data in itens_data:
                 item_id = item_data.get('id', None)
-                produto = item_data.get('produto')
-                fornecedor = item_data.get('fornecedor')
-
-                # Validações de Equipe para cada item
-                if produto.equipe != equipe:
-                     raise serializers.ValidationError(f"Produto '{produto.nome}' não pertence à equipe '{equipe.nome}'.")
-                if fornecedor.equipe != equipe:
-                     raise serializers.ValidationError(f"Fornecedor '{fornecedor.nome}' não pertence à equipe '{equipe.nome}'.")
-
+                
+                # Validação de equipe para produto/fornecedor (feita no validate do item serializer)
+                
                 quantidade = item_data.get('quantidade', 1)
                 preco = item_data.get('preco_cotado', Decimal('0.00'))
                 valor_item = quantidade * preco
 
-                if item_id: # Item existente para atualizar
+                if item_id:
                     item = item_mapping.pop(item_id, None)
                     if item:
-                        item.produto = produto
-                        item.fornecedor = fornecedor
+                        item.produto = item_data.get('produto', item.produto)
+                        item.fornecedor = item_data.get('fornecedor', item.fornecedor)
                         item.quantidade = quantidade
                         item.preco_cotado = preco
                         item.valor_total = valor_item
                         item.observacoes = item_data.get('observacoes', item.observacoes)
                         items_to_update.append(item)
                         total_encomenda += valor_item
-                    # else: Item ID inválido enviado? Ignorar ou levantar erro?
-                else: # Novo item para criar
-                    # Cria a instância mas não salva ainda (bulk_create depois)
+                else:
                      new_item = ItemEncomenda(
                          encomenda=instance,
-                         produto=produto,
-                         fornecedor=fornecedor,
+                         produto=item_data.get('produto'),
+                         fornecedor=item_data.get('fornecedor'),
                          quantidade=quantidade,
                          preco_cotado=preco,
                          valor_total=valor_item,
@@ -265,11 +206,8 @@ class EncomendaSerializer(serializers.ModelSerializer):
                      items_to_create.append(new_item)
                      total_encomenda += valor_item
 
-            # Itens que estavam no mapping mas não vieram no request devem ser deletados
             if item_mapping:
                 ItemEncomenda.objects.filter(id__in=item_mapping.keys()).delete()
-
-            # Salva atualizações e criações
             if items_to_update:
                 ItemEncomenda.objects.bulk_update(items_to_update, ['produto', 'fornecedor', 'quantidade', 'preco_cotado', 'valor_total', 'observacoes'])
             if items_to_create:
@@ -280,72 +218,161 @@ class EncomendaSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    def get_fields(self):
-        """Passa o contexto para serializers aninhados."""
-        fields = super().get_fields()
-        # Garante que o contexto (contendo a equipe) seja passado para o ItemEncomendaSerializer
-        if 'itens' in fields and isinstance(fields['itens'], serializers.ListSerializer):
-            fields['itens'].child.context.update(self.context)
-        return fields
-    
+# --- Serializers para Autenticação e Equipes ---
+# (Definidos DEPOIS dos principais, pois são usados neles)
 
+class UserSerializer(serializers.ModelSerializer): # Nome corrigido para UserSerializer
+    """Serializer básico para informações do usuário (somente leitura)."""
+    class Meta:
+        model = Usuario
+        fields = ['id', 'username', 'email', 'nome_completo', 'cargo', 'telefone', 'identificacao', 'ativo', 'equipe_ativa_id']
+        read_only_fields = fields
+
+class MembroEquipeSerializer(serializers.ModelSerializer):
+    """Serializer para exibir membros da equipe (inclui dados do usuário)."""
+    usuario = UserSerializer(read_only=True) 
+    equipe_id = serializers.UUIDField(source='equipe.id', read_only=True)
+
+    class Meta:
+        model = MembroEquipe
+        fields = ['id', 'usuario', 'equipe_id', 'papel', 'data_adesao']
+        read_only_fields = ['id', 'usuario', 'equipe_id', 'data_adesao']
+
+class EquipeSerializer(serializers.ModelSerializer):
+    """Serializer para exibir detalhes da equipe, incluindo membros."""
+    membros = MembroEquipeSerializer(many=True, read_only=True, source='membroequipe_set') 
+    administrador = UserSerializer(read_only=True) # Fonte corrigida
+
+    class Meta:
+        model = Equipe
+        fields = ['id', 'nome', 'descricao', 'ativa', 'data_criacao', 'administrador', 'membros']
+        read_only_fields = ['id', 'data_criacao', 'administrador', 'membros', 'ativa']
+
+    def create(self, validated_data):
+        # O administrador é definido na view (perform_create)
+        administrador = self.context['request'].user
+        equipe = Equipe.objects.create(administrador=administrador, **validated_data)
+        # Adiciona o admin como membro
+        equipe.adicionar_membro(administrador, papel='administrador')
+        # Define como equipe ativa
+        administrador.equipe_ativa = equipe
+        administrador.save()
+        return equipe
+
+# --- SERIALIZER DE CONVITE (NOVO/CORRIGIDO) ---
+# (Colocado AQUI, depois de UserSerializer e EquipeSerializer)
+
+class ConviteEquipeSerializer(serializers.ModelSerializer):
+    """
+    Serializer para o modelo Convite (para listagem, criação, etc. pelo ViewSet).
+    """
+    convidado_por = UserSerializer(read_only=True)
+    equipe_nome = serializers.CharField(source='equipe.nome', read_only=True)
+
+    class Meta:
+        model = ConviteEquipe # <-- CORRIGIDO para Convite
+        fields = [
+            'id', 
+            'equipe', 
+            'equipe_nome',
+            'email', 
+            'papel', 
+            'status', 
+            'convidado_por', 
+            'criado_em', 
+            'atualizado_em'
+        ]
+        read_only_fields = ['equipe', 'convidado_por', 'status', 'criado_em', 'atualizado_em']
+
+    def validate_email(self, value):
+        if not value:
+            raise serializers.ValidationError("O email é obrigatório.")
+        return value
+
+    def validate_papel(self, value):
+        if value not in ['leitor', 'editor', 'administrador']:
+            raise serializers.ValidationError("Papel inválido. Escolha 'leitor', 'editor' ou 'administrador'.")
+        return value
+
+# --- Outros Serializers de Autenticação (Mantidos do arquivo anterior) ---
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Serializer para solicitar redefinição de senha."""
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not Usuario.objects.filter(email=value, ativo=True).exists():
+            raise serializers.ValidationError("Nenhum usuário ativo encontrado com este email.")
+        return value
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Serializer para confirmar a redefinição de senha."""
+    token = serializers.CharField(write_only=True)
+    uidb64 = serializers.CharField(write_only=True)
+    nova_senha = serializers.CharField(write_only=True, style={'input_type': 'password'}, validators=[password_validation.validate_password])
+    confirmar_nova_senha = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
+    def validate(self, attrs):
+        if attrs['nova_senha'] != attrs['confirmar_nova_senha']:
+            raise serializers.ValidationError({"confirmar_nova_senha": "As senhas não coincidem."})
+        return attrs
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Serializer para alterar a senha (usuário logado)."""
+    senha_atual = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+    nova_senha = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'}, validators=[password_validation.validate_password])
+    confirmar_nova_senha = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+
+    def validate(self, attrs):
+        if attrs['nova_senha'] != attrs['confirmar_nova_senha']:
+            raise serializers.ValidationError({"confirmar_nova_senha": "As senhas não coincidem."})
+        return attrs
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    # Campo extra para confirmação de senha (não fica no modelo)
-    password2 = serializers.CharField(style={'input_type': 'password'}, write_only=True, label="Confirmar Senha")
+    """Serializer para registro de novos usuários."""
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, validators=[password_validation.validate_password])
+    password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, label="Confirmar Senha")
 
     class Meta:
         model = Usuario
-        # Campos que esperamos receber da API
-        fields = ['email', 'nome_completo', 'identificacao', 'cargo', 'telefone', 'password', 'password2']
+        fields = ['email', 'username', 'nome_completo', 'password', 'password2', 'cargo', 'telefone', 'identificacao']
         extra_kwargs = {
-            'password': {'write_only': True, 'style': {'input_type': 'password'}, 'help_text': password_validation.password_validators_help_text_html()}
+            'username': {'required': False} # Username será o email
         }
 
     def validate(self, attrs):
-        """Validações customizadas."""
-        password = attrs.get('password')
-        password2 = attrs.get('password2') # Mantenha a leitura aqui
-
-        # 1. Verifica se as senhas coincidem ANTES de remover password2
-        if password != password2:
+        if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password2": "As senhas não coincidem."})
-
-        # --- CORREÇÃO: Criar cópia e remover password2 ANTES de validate_password ---
-        temp_user_attrs = attrs.copy()
-        temp_user_attrs.pop('password2', None) # Remove password2 da cópia
-        temp_user_attrs.pop('password', None) # A senha em si não é necessária no objeto user para validação
-        # ------------------------------------------------------------------------
-
-        # 2. Aplica as validações de senha padrão do Django
-        try:
-            # Passa um usuário temporário criado SEM password2
-            password_validation.validate_password(password, user=Usuario(**temp_user_attrs))
-        except ValidationError as e:
-            # Retorna o erro associado ao campo 'password'
-            raise serializers.ValidationError({'password': list(e.messages)})
-
-        # Não precisamos mais remover 'password2' aqui, pois já foi feito na cópia
-        # e o 'create' fará o pop final.
-
-        return attrs # Retorna os atributos originais (incluindo password e password2)
+        
+        if 'username' not in attrs or not attrs['username']:
+            attrs['username'] = attrs['email']
+            
+        if Usuario.objects.filter(email=attrs['email']).exists():
+             raise serializers.ValidationError({"email": "Este email já está em uso."})
+        if Usuario.objects.filter(username=attrs['username']).exists():
+             raise serializers.ValidationError({"username": "Este username já está em uso."})
+             
+        return attrs
 
     def create(self, validated_data):
-        """Cria e retorna um novo usuário."""
-        # --- CORREÇÃO: Remover password2 ANTES de criar o usuário ---
         validated_data.pop('password2')
-        # -----------------------------------------------------------
-
-        # Extrai a senha para usar set_password
         password = validated_data.pop('password')
-
-        # Define o 'username' como sendo o email (conforme seu modelo Usuario)
-        validated_data['username'] = validated_data['email']
-
-        # Cria a instância do usuário SEM a senha e SEM password2
+        
         user = Usuario(**validated_data)
-
-        # Define a senha HASHED corretamente
         user.set_password(password)
         user.save()
         return user
+
+# class ConvidarMembroSerializer(serializers.Serializer):
+#     """Serializer simples para a view 'convidar_membro'."""
+#     email = serializers.EmailField()
+#     papel = serializers.ChoiceField(choices=MembroEquipe.PAPEIS_ESCOLHAS, default='leitor')
+
+#     def validate_email(self, value):
+#         # A lógica de validação (se já é membro, se já foi convidado)
+#         # será tratada na view (views_auth.py), pois depende da equipe ativa.
+#         return value
+
+# class AceitarConviteSerializer(serializers.Serializer):
+#     """Serializer simples para a view 'aceitar_convite'."""
+#     token = serializers.CharField()
