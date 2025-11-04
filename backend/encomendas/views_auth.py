@@ -33,9 +33,8 @@ from .views import get_equipe_atual
 
 
 # DRF Imports para a nova view
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status, authentication # <-- ADICIONE authentication
 from rest_framework.response import Response
-from rest_framework import status
 
 # Importe o novo serializer
 from .serializers import UserRegistrationSerializer
@@ -688,6 +687,8 @@ class UserRegisterView(generics.CreateAPIView):
     # Permite que qualquer um acesse este endpoint para se registrar
     permission_classes = [permissions.AllowAny]
     serializer_class = UserRegistrationSerializer
+    # ADICIONE ESTA LINHA para desabilitar CSRF nesta view:
+    authentication_classes = []
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

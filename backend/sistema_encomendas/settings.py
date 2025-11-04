@@ -87,6 +87,12 @@ CORS_ALLOWED_ORIGINS = [
     # Em produção, adicione o domínio do seu frontend:
     # "https://seu-dominio-frontend.com",
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173", # <-- ADICIONE A URL DO SEU FRONTEND
+    # "http://localhost:3000",
+]
+
 # (Opcional) Se precisar permitir que o frontend envie cookies (como CSRF ou session)
 # CORS_ALLOW_CREDENTIALS = True
 # (Opcional, mas comum) Permite métodos HTTP específicos
