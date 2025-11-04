@@ -850,3 +850,45 @@ class TeamDashboardDataView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+    
+from rest_framework import viewsets # Certifique-se que 'viewsets' está importado no topo
+from .models import Equipe
+from .serializers import EquipeSerializer
+
+# --- API ViewSet para Equipes ---
+class EquipeViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint para visualizar, criar, editar e excluir Equipes.
+    Filtra automaticamente para mostrar apenas equipes das quais o usuário é membro.
+    """
+    serializer_class = EquipeSerializer
+    permission_classes = [permissions.IsAuthenticated] # Adicione "permissions."
+
+    def get_queryset(self):
+        """
+        Filtra o queryset para retornar apenas equipes
+        das quais o usuário logado é membro.
+        """
+        user = self.request.user
+        if user.is_authenticated:
+            return user.equipes.all().order_by('nome')
+        return Equipe.objects.none()
+
+    def perform_create(self, serializer):
+        """
+        Define o usuário logado como o administrador da nova equipe
+        e o adiciona como membro.
+        """
+        try:
+            equipe = serializer.save(administrador=self.request.user)
+            # Adiciona o administrador como membro automaticamente
+            equipe.adicionar_membro(self.request.user, papel='administrador')
+        except Exception as e:
+            print(f"Erro ao criar equipe e adicionar membro: {e}")
+            raise serializers.ValidationError("Ocorreu um erro ao criar a equipe.")
+
+    def get_serializer_context(self):
+        """ Adiciona o request ao contexto do serializer. """
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context

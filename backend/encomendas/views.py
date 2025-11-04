@@ -68,6 +68,7 @@ class EncomendaViewSet(viewsets.ModelViewSet):
     API endpoint que permite visualizar, criar, editar e excluir Encomendas.
     Filtra automaticamente para mostrar apenas encomendas das equipes do usuário.
     """
+    queryset = Encomenda.objects.all()  # <-- ADICIONE ESTA LINHA
     serializer_class = EncomendaSerializer
     permission_classes = [permissions.IsAuthenticated] # Garante autenticação
 
@@ -282,6 +283,7 @@ class BaseEquipeFilteredViewSet(viewsets.ModelViewSet):
 # --- ViewSets Específicos usando a Base ---
 class ClienteViewSet(BaseEquipeFilteredViewSet):
     """API endpoint para Clientes, filtrado por equipes."""
+    queryset = Cliente.objects.all()  # <-- ADICIONE ESTA LINHA
     serializer_class = ClienteSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['bairro']
@@ -292,6 +294,7 @@ class ClienteViewSet(BaseEquipeFilteredViewSet):
 
 class ProdutoViewSet(BaseEquipeFilteredViewSet):
     """API endpoint para Produtos, filtrado por equipes."""
+    queryset = Cliente.objects.all()  # <-- ADICIONE ESTA LINHA
     serializer_class = ProdutoSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['categoria']
@@ -302,6 +305,7 @@ class ProdutoViewSet(BaseEquipeFilteredViewSet):
 
 class FornecedorViewSet(BaseEquipeFilteredViewSet):
     """API endpoint para Fornecedores, filtrado por equipes."""
+    queryset = Cliente.objects.all()  # <-- ADICIONE ESTA LINHA
     serializer_class = FornecedorSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['nome', 'codigo', 'contato', 'email', 'telefone']
@@ -312,6 +316,7 @@ class FornecedorViewSet(BaseEquipeFilteredViewSet):
 # --- ViewSet para Entrega (ReadOnly) ---
 class EntregaViewSet(viewsets.ReadOnlyModelViewSet):
     """API endpoint para visualizar Entregas."""
+    queryset = Cliente.objects.all()  # <-- ADICIONE ESTA LINHA
     serializer_class = EntregaSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -565,9 +570,3 @@ def encomenda_pdf(request, pk):
         return HttpResponse("Erro interno ao processar a solicitação do PDF.", status=500, content_type="text/plain")
 
 
-# --- REMOVA ou COMENTE as views antigas que renderizavam HTML ---
-# Ex: def encomenda_list(request): ... (substituída por EncomendaViewSet)
-# Ex: def encomenda_detail(request, pk): ... (substituída por EncomendaViewSet)
-# Ex: def cliente_list(request, equipe_id): ... (substituída por ClienteViewSet)
-# Ex: def dashboard(request): ... (A lógica será do frontend)
-# ... etc ...
