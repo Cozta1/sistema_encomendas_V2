@@ -78,20 +78,25 @@ REST_FRAMEWORK = {
 
 # Configuração do CORS (Cross-Origin Resource Sharing)
 # Permite que seu frontend (rodando em outra porta/domínio) acesse a API
-CORS_ALLOWED_ORIGINS = [
-    # Endereço do seu app React em desenvolvimento (ajuste a porta se necessário)
-    "http://localhost:5173",   # <--- ADICIONE ESTA LINHA
-    "http://127.0.0.1:5173",  # <--- ADICIONE ESTA LINHA (boa prática incluir ambos)
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    # Em produção, adicione o domínio do seu frontend:
-    # "https://seu-dominio-frontend.com",
-]
+# CORS_ALLOWED_ORIGINS = [
+#     # Endereço do seu app React em desenvolvimento (ajuste a porta se necessário)
+#     "http://localhost:5173",   # <--- ADICIONE ESTA LINHA
+#     "http://127.0.0.1:5173",  # <--- ADICIONE ESTA LINHA (boa prática incluir ambos)
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+#     # Em produção, adicione o domínio do seu frontend:
+#     # "https://seu-dominio-frontend.com",
+# ]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True  # NÃO USE EM PRODUÇÃO
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173", # <-- ADICIONE A URL DO SEU FRONTEND
     # "http://localhost:3000",
 ]
+
+
 
 # (Opcional) Se precisar permitir que o frontend envie cookies (como CSRF ou session)
 # CORS_ALLOW_CREDENTIALS = True

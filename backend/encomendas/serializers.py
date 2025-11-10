@@ -1,11 +1,11 @@
-# encomendas/serializers.py
+# backend/encomendas/serializers.py
 
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
-from decimal import Decimal # <-- IMPORTAÇÃO ADICIONADA
+from decimal import Decimal
 from .models import (
-    Usuario, Equipe, MembroEquipe, ConviteEquipe, # <-- CORRIGIDO DE ConviteEquipe PARA Convite
+    Usuario, Equipe, MembroEquipe, ConviteEquipe,
     Cliente, Fornecedor, Produto,
     Encomenda, ItemEncomenda, Entrega
 )
@@ -96,15 +96,16 @@ class EncomendaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Encomenda
+        # CORREÇÃO: 'id' removido pois Encomenda usa 'numero_encomenda' como PK
         fields = [
-            'id', 'numero_encomenda', 'cliente_id', 'cliente_nome',
+            'numero_encomenda', 'cliente_id', 'cliente_nome',
             'equipe_id', 'equipe_nome',
             'data_criacao', 'data_encomenda', 'responsavel_criacao',
             'status', 'status_display', 'observacoes', 'valor_total', 'updated_at',
             'itens', 'entrega'
         ]
         read_only_fields = [
-            'id', 'numero_encomenda', 'data_criacao', 'valor_total', 'updated_at',
+            'numero_encomenda', 'data_criacao', 'valor_total', 'updated_at',
             'cliente_nome', 'equipe_id', 'equipe_nome', 'status_display', 'entrega'
         ]
 
@@ -130,7 +131,7 @@ class EncomendaSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Cria a Encomenda e seus Itens aninhados."""
         itens_data = validated_data.pop('itens')
-        equipe = self._validate_contexto(validated_data) # <-- CORREÇÃO (self. e _)
+        equipe = self._validate_contexto(validated_data)
         
         encomenda = Encomenda.objects.create(**validated_data, equipe=equipe)
         total_encomenda = Decimal('0.00')
@@ -176,8 +177,6 @@ class EncomendaSerializer(serializers.ModelSerializer):
             for item_data in itens_data:
                 item_id = item_data.get('id', None)
                 
-                # Validação de equipe para produto/fornecedor (feita no validate do item serializer)
-                
                 quantidade = item_data.get('quantidade', 1)
                 preco = item_data.get('preco_cotado', Decimal('0.00'))
                 valor_item = quantidade * preco
@@ -219,13 +218,13 @@ class EncomendaSerializer(serializers.ModelSerializer):
         return instance
 
 # --- Serializers para Autenticação e Equipes ---
-# (Definidos DEPOIS dos principais, pois são usados neles)
 
-class UserSerializer(serializers.ModelSerializer): # Nome corrigido para UserSerializer
+class UserSerializer(serializers.ModelSerializer):
     """Serializer básico para informações do usuário (somente leitura)."""
     class Meta:
         model = Usuario
-        fields = ['id', 'username', 'email', 'nome_completo', 'cargo', 'telefone', 'identificacao', 'ativo', 'equipe_ativa_id']
+        # CORREÇÃO: 'equipe_ativa_id' removido, pois não existe no modelo Usuario
+        fields = ['id', 'username', 'email', 'nome_completo', 'cargo', 'telefone', 'identificacao', 'ativo']
         read_only_fields = fields
 
 class MembroEquipeSerializer(serializers.ModelSerializer):
@@ -241,7 +240,7 @@ class MembroEquipeSerializer(serializers.ModelSerializer):
 class EquipeSerializer(serializers.ModelSerializer):
     """Serializer para exibir detalhes da equipe, incluindo membros."""
     membros = MembroEquipeSerializer(many=True, read_only=True, source='membroequipe_set') 
-    administrador = UserSerializer(read_only=True) # Fonte corrigida
+    administrador = UserSerializer(read_only=True)
 
     class Meta:
         model = Equipe
@@ -254,23 +253,17 @@ class EquipeSerializer(serializers.ModelSerializer):
         equipe = Equipe.objects.create(administrador=administrador, **validated_data)
         # Adiciona o admin como membro
         equipe.adicionar_membro(administrador, papel='administrador')
-        # Define como equipe ativa
-        administrador.equipe_ativa = equipe
-        administrador.save()
         return equipe
-
-# --- SERIALIZER DE CONVITE (NOVO/CORRIGIDO) ---
-# (Colocado AQUI, depois de UserSerializer e EquipeSerializer)
 
 class ConviteEquipeSerializer(serializers.ModelSerializer):
     """
-    Serializer para o modelo Convite (para listagem, criação, etc. pelo ViewSet).
+    Serializer para o modelo ConviteEquipe (para listagem, criação, etc. pelo ViewSet).
     """
     convidado_por = UserSerializer(read_only=True)
     equipe_nome = serializers.CharField(source='equipe.nome', read_only=True)
 
     class Meta:
-        model = ConviteEquipe # <-- CORRIGIDO para Convite
+        model = ConviteEquipe
         fields = [
             'id', 
             'equipe', 
@@ -279,10 +272,10 @@ class ConviteEquipeSerializer(serializers.ModelSerializer):
             'papel', 
             'status', 
             'convidado_por', 
-            'criado_em', 
-            'atualizado_em'
+            'data_criacao',  # Corrigido para data_criacao (conforme modelo)
+            'data_expiracao' # Adicionado data_expiracao se útil
         ]
-        read_only_fields = ['equipe', 'convidado_por', 'status', 'criado_em', 'atualizado_em']
+        read_only_fields = ['equipe', 'convidado_por', 'status', 'data_criacao', 'data_expiracao']
 
     def validate_email(self, value):
         if not value:
@@ -290,11 +283,12 @@ class ConviteEquipeSerializer(serializers.ModelSerializer):
         return value
 
     def validate_papel(self, value):
-        if value not in ['leitor', 'editor', 'administrador']:
-            raise serializers.ValidationError("Papel inválido. Escolha 'leitor', 'editor' ou 'administrador'.")
+        if value not in ['gerente', 'membro', 'administrador']: # Ajustado para opções válidas do modelo
+             # Nota: 'leitor'/'editor' não estavam no modelo original, usei os do modelo.
+            raise serializers.ValidationError("Papel inválido.")
         return value
 
-# --- Outros Serializers de Autenticação (Mantidos do arquivo anterior) ---
+# --- Outros Serializers de Autenticação ---
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     """Serializer para solicitar redefinição de senha."""
@@ -308,7 +302,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 class PasswordResetConfirmSerializer(serializers.Serializer):
     """Serializer para confirmar a redefinição de senha."""
     token = serializers.CharField(write_only=True)
-    uidb64 = serializers.CharField(write_only=True)
+    # uidb64 removido se não for usado pelo seu sistema de token personalizado
     nova_senha = serializers.CharField(write_only=True, style={'input_type': 'password'}, validators=[password_validation.validate_password])
     confirmar_nova_senha = serializers.CharField(write_only=True, style={'input_type': 'password'})
 
@@ -362,17 +356,3 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
-
-# class ConvidarMembroSerializer(serializers.Serializer):
-#     """Serializer simples para a view 'convidar_membro'."""
-#     email = serializers.EmailField()
-#     papel = serializers.ChoiceField(choices=MembroEquipe.PAPEIS_ESCOLHAS, default='leitor')
-
-#     def validate_email(self, value):
-#         # A lógica de validação (se já é membro, se já foi convidado)
-#         # será tratada na view (views_auth.py), pois depende da equipe ativa.
-#         return value
-
-# class AceitarConviteSerializer(serializers.Serializer):
-#     """Serializer simples para a view 'aceitar_convite'."""
-#     token = serializers.CharField()
